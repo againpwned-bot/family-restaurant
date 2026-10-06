@@ -19,6 +19,8 @@ const nextConfig: NextConfig = {
   cacheComponents: false,
   poweredByHeader: false,
   turbopack: {
+    // There is an unrelated package-lock.json in the home folder; pin the root here.
+    root: process.cwd(),
     rules: {
       "*.css": {
         loaders: ["@tailwindcss/turbopack"],
