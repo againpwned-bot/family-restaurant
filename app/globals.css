@@ -1,0 +1,287 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+/* Dark mode follows the system unless the user picked a theme in Settings
+   (the root layout then puts .light or .dark on <html>). */
+@custom-variant dark {
+  &:where(.dark, .dark *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not(.light), :root:not(.light) *) {
+      @slot;
+    }
+  }
+}
+
+@theme inline {
+  --font-sans: var(--font-karla), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-playfair), ui-serif, Georgia, serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Design-system extras */
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-ink: var(--gold-ink);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-soft: var(--success-soft);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Palette from design-system/meniul-de-acasa/MASTER.md:
+   primary #DC2626 (appetizing red), CTA/accent #CA8A04 (warm gold),
+   background #FEF2F2, text #450A0A.
+   Contrast: #DC2626 is 4.4:1 on the background, so small red text uses
+   brand-ink (#B91C1C, 5.9:1); gold is never used as text on light surfaces,
+   gold-ink on gold-soft is 5.3:1. */
+:root {
+  --radius: 0.75rem;
+
+  --background: #fef2f2;
+  --foreground: #450a0a;
+  --card: #ffffff;
+  --card-foreground: #450a0a;
+  --popover: #ffffff;
+  --popover-foreground: #450a0a;
+  --primary: #dc2626;
+  --primary-foreground: #ffffff;
+  --secondary: #fee2e2;
+  --secondary-foreground: #7f1d1d;
+  --muted: #fde8e8;
+  --muted-foreground: #8a3b36;
+  --accent: #fee2e2;
+  --accent-foreground: #450a0a;
+  --destructive: #b91c1c;
+  --border: #f6d4d1;
+  --input: #efc4c0;
+  --ring: #a16207;
+
+  --gold: #ca8a04;
+  --gold-foreground: #2b1700;
+  --gold-soft: #fdf1d3;
+  --gold-ink: #8a5a00;
+  --brand-ink: #b91c1c;
+  --brand-soft: #f87171;
+  --success: #15803d;
+  --success-foreground: #ffffff;
+  --success-soft: #dcfce7;
+
+  --chart-1: #dc2626;
+  --chart-2: #ca8a04;
+  --chart-3: #f87171;
+  --chart-4: #7f1d1d;
+  --chart-5: #fbbf24;
+
+  --sidebar: #fff7f6;
+  --sidebar-foreground: #450a0a;
+  --sidebar-primary: #dc2626;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #fee2e2;
+  --sidebar-accent-foreground: #450a0a;
+  --sidebar-border: #f6d4d1;
+  --sidebar-ring: #dc2626;
+
+  color-scheme: light;
+}
+
+/* Kept in two places on purpose: explicit choice (.dark) and system default. */
+:root.dark {
+  --background: #1a0b0a;
+  --foreground: #fdeceb;
+  --card: #251311;
+  --card-foreground: #fdeceb;
+  --popover: #2b1714;
+  --popover-foreground: #fdeceb;
+  --primary: #f87171;
+  --primary-foreground: #2a0806;
+  --secondary: #3a1b18;
+  --secondary-foreground: #fde2e0;
+  --muted: #2e1714;
+  --muted-foreground: #d7a7a1;
+  --accent: #3a1b18;
+  --accent-foreground: #fdeceb;
+  --destructive: #f87171;
+  --border: #3f221e;
+  --input: #4f2b26;
+  --ring: #eab308;
+  --gold: #eab308;
+  --gold-foreground: #231300;
+  --gold-soft: #3a2a0a;
+  --gold-ink: #fcd34d;
+  --brand-ink: #fca5a5;
+  --brand-soft: #b91c1c;
+  --success: #4ade80;
+  --success-foreground: #052e14;
+  --success-soft: #0f2a19;
+  --sidebar: #1f0e0c;
+  --sidebar-foreground: #fdeceb;
+  --sidebar-primary: #f87171;
+  --sidebar-primary-foreground: #2a0806;
+  --sidebar-accent: #3a1b18;
+  --sidebar-accent-foreground: #fdeceb;
+  --sidebar-border: #3f221e;
+  --sidebar-ring: #f87171;
+  color-scheme: dark;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.light) {
+    --background: #1a0b0a;
+    --foreground: #fdeceb;
+    --card: #251311;
+    --card-foreground: #fdeceb;
+    --popover: #2b1714;
+    --popover-foreground: #fdeceb;
+    --primary: #f87171;
+    --primary-foreground: #2a0806;
+    --secondary: #3a1b18;
+    --secondary-foreground: #fde2e0;
+    --muted: #2e1714;
+    --muted-foreground: #d7a7a1;
+    --accent: #3a1b18;
+    --accent-foreground: #fdeceb;
+    --destructive: #f87171;
+    --border: #3f221e;
+    --input: #4f2b26;
+    --ring: #eab308;
+    --gold: #eab308;
+    --gold-foreground: #231300;
+    --gold-soft: #3a2a0a;
+    --gold-ink: #fcd34d;
+    --brand-ink: #fca5a5;
+    --brand-soft: #b91c1c;
+    --success: #4ade80;
+    --success-foreground: #052e14;
+    --success-soft: #0f2a19;
+    --sidebar: #1f0e0c;
+    --sidebar-foreground: #fdeceb;
+    --sidebar-primary: #f87171;
+    --sidebar-primary-foreground: #2a0806;
+    --sidebar-accent: #3a1b18;
+    --sidebar-accent-foreground: #fdeceb;
+    --sidebar-border: #3f221e;
+    --sidebar-ring: #f87171;
+    color-scheme: dark;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+    text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    min-height: 100dvh;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading;
+    text-wrap: balance;
+  }
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+  :focus-visible {
+    outline-offset: 2px;
+  }
+}
+
+/* Hover/press feedback without animating colours: a static overlay whose
+   opacity is the only thing that transitions (see animation rules). */
+@utility hover-overlay {
+  position: relative;
+  isolation: isolate;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: currentColor;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 150ms ease;
+    z-index: -1;
+  }
+  @media (hover: hover) {
+    &:hover::after {
+      opacity: 0.08;
+    }
+  }
+  &:active::after {
+    opacity: 0.14;
+  }
+}
+
+/* Space for the fixed mobile bottom navigation (+ the iPhone/Android gesture bar). */
+@utility pb-safe-nav {
+  padding-bottom: calc(4.5rem + env(safe-area-inset-bottom));
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}

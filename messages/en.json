@@ -1,0 +1,127 @@
+{
+  "metadata": {
+    "title": "Home Menu",
+    "description": "The family kitchen: today's menu, real-time orders and a notification when the food is ready."
+  },
+  "common": {
+    "appName": "Home Menu",
+    "tagline": "The family kitchen, one click away.",
+    "loading": "Loading…",
+    "save": "Save",
+    "saving": "Saving…",
+    "cancel": "Cancel",
+    "close": "Close",
+    "back": "Back",
+    "retry": "Try again",
+    "optional": "optional",
+    "language": "Language",
+    "comingSoonTitle": "Coming soon",
+    "comingSoonDescription": "This section is being built and arrives in one of the next stages."
+  },
+  "roles": {
+    "owner": "Owner",
+    "admin": "Admin",
+    "client": "Client"
+  },
+  "login": {
+    "pageTitle": "Sign in",
+    "title": "Welcome home",
+    "subtitle": "Sign in to see what's cooking today.",
+    "username": "Username",
+    "usernamePlaceholder": "e.g. Emil",
+    "password": "Password",
+    "showPassword": "Show password",
+    "hidePassword": "Hide password",
+    "submit": "Sign in",
+    "submitting": "Checking…",
+    "forgot": "Forgot your password? Ask the site admin to reset it.",
+    "heroTitle": "What are we eating today?",
+    "heroText": "Mom sets today's menu, you pick what you like, and the app lets you know when it's ready.",
+    "heroPoint1": "Today's menu, always up to date",
+    "heroPoint2": "Orders tracked in real time",
+    "heroPoint3": "A notification when the food is ready",
+    "errors": {
+      "required": "Enter your username and password.",
+      "invalid": "Wrong username or password.",
+      "rate_limited": "Too many attempts. Wait a little and try again.",
+      "no_access": "This account has no access to Home Menu.",
+      "unknown": "Something went wrong. Please try again."
+    }
+  },
+  "nav": {
+    "main": "Main navigation",
+    "skipToContent": "Skip to content",
+    "menu": "Menu",
+    "myOrders": "My orders",
+    "settings": "Settings",
+    "adminPanel": "Admin panel",
+    "clientView": "Client view",
+    "orders": "Orders",
+    "todayMenu": "Today's menu",
+    "dishes": "Dishes",
+    "shopping": "Shopping",
+    "users": "Users",
+    "more": "More",
+    "account": "My account",
+    "logout": "Sign out",
+    "loggingOut": "Signing you out…"
+  },
+  "settings": {
+    "title": "Settings",
+    "description": "Your account and app preferences.",
+    "account": {
+      "title": "My account",
+      "username": "Username",
+      "role": "Role"
+    },
+    "language": {
+      "title": "Language",
+      "description": "The language the app is shown in.",
+      "ro": "Română",
+      "en": "English"
+    },
+    "theme": {
+      "title": "Theme",
+      "description": "How the app looks on this device.",
+      "system": "System",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "password": {
+      "title": "Change password",
+      "description": "For safety, confirm your current password first.",
+      "current": "Current password",
+      "new": "New password",
+      "confirm": "Confirm new password",
+      "hint": "At least {min} characters.",
+      "submit": "Change password",
+      "submitting": "Saving…",
+      "success": "Done! Your password has been changed.",
+      "errors": {
+        "required": "Fill in all fields.",
+        "too_short": "The new password must have at least {min} characters.",
+        "too_long": "The new password can have at most {max} characters.",
+        "mismatch": "The new passwords don't match.",
+        "same": "The new password must be different from the current one.",
+        "wrong_current": "The current password is not correct.",
+        "rate_limited": "Too many attempts. Wait a little.",
+        "unknown": "The password could not be changed. Please try again."
+      }
+    }
+  },
+  "errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundText": "It may have moved, or the link is wrong.",
+    "goHome": "Back home",
+    "genericTitle": "Something went wrong",
+    "genericText": "An unexpected error occurred. Try again in a few moments."
+  },
+  "home": {
+    "greeting": "Enjoy your meal, {name}!",
+    "title": "Today's menu"
+  },
+  "admin": {
+    "greeting": "Hi, {name}!",
+    "title": "Admin panel"
+  }
+}

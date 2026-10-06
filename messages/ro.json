@@ -1,0 +1,127 @@
+{
+  "metadata": {
+    "title": "Meniul de acasă",
+    "description": "Bucătăria familiei: meniul zilei, comenzi în timp real și notificări când mâncarea e gata."
+  },
+  "common": {
+    "appName": "Meniul de acasă",
+    "tagline": "Bucătăria familiei, la un click distanță.",
+    "loading": "Se încarcă…",
+    "save": "Salvează",
+    "saving": "Se salvează…",
+    "cancel": "Renunță",
+    "close": "Închide",
+    "back": "Înapoi",
+    "retry": "Încearcă din nou",
+    "optional": "opțional",
+    "language": "Limbă",
+    "comingSoonTitle": "În curând",
+    "comingSoonDescription": "Secțiunea aceasta e în lucru și apare într-una dintre etapele următoare."
+  },
+  "roles": {
+    "owner": "Proprietar",
+    "admin": "Administrator",
+    "client": "Client"
+  },
+  "login": {
+    "pageTitle": "Autentificare",
+    "title": "Bine ai venit acasă",
+    "subtitle": "Intră în cont ca să vezi ce se gătește azi.",
+    "username": "Nume de utilizator",
+    "usernamePlaceholder": "ex. Emil",
+    "password": "Parolă",
+    "showPassword": "Arată parola",
+    "hidePassword": "Ascunde parola",
+    "submit": "Intră în cont",
+    "submitting": "Se verifică…",
+    "forgot": "Ai uitat parola? Roagă administratorul site-ului să ți-o reseteze.",
+    "heroTitle": "Ce mâncăm azi?",
+    "heroText": "Mama pune meniul zilei, tu alegi ce-ți place, iar aplicația te anunță când e gata.",
+    "heroPoint1": "Meniul zilei, mereu la zi",
+    "heroPoint2": "Comenzi urmărite în timp real",
+    "heroPoint3": "Notificare când mâncarea e gata",
+    "errors": {
+      "required": "Completează numele de utilizator și parola.",
+      "invalid": "Nume de utilizator sau parolă greșită.",
+      "rate_limited": "Prea multe încercări. Mai așteaptă puțin și încearcă din nou.",
+      "no_access": "Contul acesta nu are acces la Meniul de acasă.",
+      "unknown": "Ceva n-a mers. Încearcă din nou."
+    }
+  },
+  "nav": {
+    "main": "Navigare principală",
+    "skipToContent": "Sari la conținut",
+    "menu": "Meniu",
+    "myOrders": "Comenzile mele",
+    "settings": "Setări",
+    "adminPanel": "Panou admin",
+    "clientView": "Vezi ca client",
+    "orders": "Comenzi",
+    "todayMenu": "Meniul zilei",
+    "dishes": "Preparate",
+    "shopping": "Cumpărături",
+    "users": "Utilizatori",
+    "more": "Mai mult",
+    "account": "Contul meu",
+    "logout": "Deconectare",
+    "loggingOut": "Te deconectăm…"
+  },
+  "settings": {
+    "title": "Setări",
+    "description": "Contul tău și preferințele aplicației.",
+    "account": {
+      "title": "Contul meu",
+      "username": "Utilizator",
+      "role": "Rol"
+    },
+    "language": {
+      "title": "Limbă",
+      "description": "Limba în care vezi aplicația.",
+      "ro": "Română",
+      "en": "English"
+    },
+    "theme": {
+      "title": "Temă",
+      "description": "Aspectul aplicației pe acest dispozitiv.",
+      "system": "Ca sistemul",
+      "light": "Luminoasă",
+      "dark": "Întunecată"
+    },
+    "password": {
+      "title": "Schimbă parola",
+      "description": "Pentru siguranță, confirmă mai întâi parola actuală.",
+      "current": "Parola actuală",
+      "new": "Parola nouă",
+      "confirm": "Confirmă parola nouă",
+      "hint": "Cel puțin {min} caractere.",
+      "submit": "Schimbă parola",
+      "submitting": "Se salvează…",
+      "success": "Gata! Parola a fost schimbată.",
+      "errors": {
+        "required": "Completează toate câmpurile.",
+        "too_short": "Parola nouă trebuie să aibă cel puțin {min} caractere.",
+        "too_long": "Parola nouă poate avea cel mult {max} caractere.",
+        "mismatch": "Parolele noi nu coincid.",
+        "same": "Parola nouă trebuie să fie diferită de cea actuală.",
+        "wrong_current": "Parola actuală nu e corectă.",
+        "rate_limited": "Prea multe încercări. Mai așteaptă puțin.",
+        "unknown": "Parola nu a putut fi schimbată. Încearcă din nou."
+      }
+    }
+  },
+  "errors": {
+    "notFoundTitle": "Pagina nu există",
+    "notFoundText": "Poate a fost mutată sau linkul e greșit.",
+    "goHome": "Înapoi acasă",
+    "genericTitle": "Ceva n-a mers bine",
+    "genericText": "A apărut o eroare neașteptată. Încearcă din nou peste câteva clipe."
+  },
+  "home": {
+    "greeting": "Poftă bună, {name}!",
+    "title": "Meniul de azi"
+  },
+  "admin": {
+    "greeting": "Bună, {name}!",
+    "title": "Panou de administrare"
+  }
+}

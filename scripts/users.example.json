@@ -1,0 +1,8 @@
+{
+  "users": [
+    { "role": "owner", "username": "YourName", "password": "change-me-please", "displayName": "Optional display name" },
+    { "role": "admin", "username": "Cook", "password": "change-me-please" },
+    { "role": "client", "username": "Someone", "password": "change-me-please" },
+    "client:AnotherOne:change-me-please"
+  ]
+}

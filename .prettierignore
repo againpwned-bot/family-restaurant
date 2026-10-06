@@ -1,0 +1,7 @@
+node_modules
+.next
+components/ui
+design-system
+.claude
+supabase/migrations
+package-lock.json
