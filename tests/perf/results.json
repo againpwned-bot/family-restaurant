@@ -1,0 +1,502 @@
+[
+  {
+    "profile": "desktop GPU, CPU 2x",
+    "scenario": "wheel: ring -> drum",
+    "tier": "full",
+    "frames": 72,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop GPU, CPU 2x",
+    "scenario": "wheel: next dish",
+    "tier": "full",
+    "frames": 72,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop GPU, CPU 2x",
+    "scenario": "wheel: idle (loop stopped)",
+    "tier": "full",
+    "frames": 59,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop GPU, CPU 2x",
+    "scenario": "card: 3D flip",
+    "tier": "full",
+    "frames": 57,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop GPU, CPU 2x",
+    "scenario": "card: flip back",
+    "tier": "full",
+    "frames": 58,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop GPU, CPU 2x",
+    "scenario": "card: hover tilt + glare",
+    "tier": "full",
+    "frames": 57,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop GPU, CPU 2x",
+    "scenario": "card -> dish (shared photo)",
+    "tier": "full",
+    "frames": 94,
+    "avgFps": 57.6,
+    "p95": 16.7,
+    "max": 83.4,
+    "dropped": 1
+  },
+  {
+    "profile": "desktop GPU, CPU 2x",
+    "scenario": "dish overlay: close",
+    "tier": "full",
+    "frames": 55,
+    "avgFps": 58.9,
+    "p95": 16.7,
+    "max": 33.4,
+    "dropped": 1
+  },
+  {
+    "profile": "desktop GPU, CPU 2x",
+    "scenario": "page transition -> orders",
+    "tier": "full",
+    "frames": 63,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop GPU, CPU 2x",
+    "scenario": "order: accepted (flip+banner)",
+    "tier": "full",
+    "frames": 90,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop GPU, CPU 2x",
+    "scenario": "order: timer running (idle)",
+    "tier": "full",
+    "frames": 90,
+    "avgFps": 45.4,
+    "p95": 16.7,
+    "max": 500,
+    "dropped": 1
+  },
+  {
+    "profile": "desktop GPU, CPU 2x",
+    "scenario": "dish page (3D plate if full)",
+    "tier": "full",
+    "frames": 119,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop GPU, CPU 2x",
+    "scenario": "home idle (WebGL bg if full)",
+    "tier": "full",
+    "frames": 118,
+    "avgFps": 59.5,
+    "p95": 16.8,
+    "max": 33.4,
+    "dropped": 1
+  },
+  {
+    "profile": "desktop soft-GL, CPU 2x",
+    "scenario": "wheel: ring -> drum",
+    "tier": "lite",
+    "frames": 71,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop soft-GL, CPU 2x",
+    "scenario": "wheel: next dish",
+    "tier": "lite",
+    "frames": 72,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop soft-GL, CPU 2x",
+    "scenario": "wheel: idle (loop stopped)",
+    "tier": "lite",
+    "frames": 59,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop soft-GL, CPU 2x",
+    "scenario": "card: 3D flip",
+    "tier": "lite",
+    "frames": 58,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop soft-GL, CPU 2x",
+    "scenario": "card: flip back",
+    "tier": "lite",
+    "frames": 56,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.7,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop soft-GL, CPU 2x",
+    "scenario": "card: hover tilt + glare",
+    "tier": "lite",
+    "frames": 58,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop soft-GL, CPU 2x",
+    "scenario": "card -> dish (shared photo)",
+    "tier": "lite",
+    "frames": 82,
+    "avgFps": 57.9,
+    "p95": 16.7,
+    "max": 66.7,
+    "dropped": 1
+  },
+  {
+    "profile": "desktop soft-GL, CPU 2x",
+    "scenario": "dish overlay: close",
+    "tier": "lite",
+    "frames": 55,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop soft-GL, CPU 2x",
+    "scenario": "page transition -> orders",
+    "tier": "lite",
+    "frames": 64,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop soft-GL, CPU 2x",
+    "scenario": "order: accepted (flip+banner)",
+    "tier": "lite",
+    "frames": 90,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop soft-GL, CPU 2x",
+    "scenario": "order: timer running (idle)",
+    "tier": "lite",
+    "frames": 119,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop soft-GL, CPU 2x",
+    "scenario": "dish page (3D plate if full)",
+    "tier": "lite",
+    "frames": 119,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "desktop soft-GL, CPU 2x",
+    "scenario": "home idle (WebGL bg if full)",
+    "tier": "lite",
+    "frames": 119,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "phone, CPU 4x",
+    "scenario": "wheel: ring -> drum",
+    "tier": "lite",
+    "frames": 72,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "phone, CPU 4x",
+    "scenario": "wheel: next dish",
+    "tier": "lite",
+    "frames": 71,
+    "avgFps": 60,
+    "p95": 16.8,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "phone, CPU 4x",
+    "scenario": "wheel: idle (loop stopped)",
+    "tier": "lite",
+    "frames": 59,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "phone, CPU 4x",
+    "scenario": "card: 3D flip",
+    "tier": "lite",
+    "frames": 60,
+    "avgFps": 58.1,
+    "p95": 16.8,
+    "max": 50,
+    "dropped": 1
+  },
+  {
+    "profile": "phone, CPU 4x",
+    "scenario": "card: flip back",
+    "tier": "lite",
+    "frames": 57,
+    "avgFps": 59,
+    "p95": 16.8,
+    "max": 33.2,
+    "dropped": 1
+  },
+  {
+    "profile": "phone, CPU 4x",
+    "scenario": "card -> dish (shared photo)",
+    "tier": "lite",
+    "frames": 84,
+    "avgFps": 53.6,
+    "p95": 16.8,
+    "max": 149.9,
+    "dropped": 2
+  },
+  {
+    "profile": "phone, CPU 4x",
+    "scenario": "dish overlay: close",
+    "tier": "lite",
+    "frames": 55,
+    "avgFps": 56.9,
+    "p95": 16.8,
+    "max": 50,
+    "dropped": 2
+  },
+  {
+    "profile": "phone, CPU 4x",
+    "scenario": "page transition -> orders",
+    "tier": "lite",
+    "frames": 65,
+    "avgFps": 59.1,
+    "p95": 16.8,
+    "max": 33.3,
+    "dropped": 1
+  },
+  {
+    "profile": "phone, CPU 4x",
+    "scenario": "order: accepted (flip+banner)",
+    "tier": "lite",
+    "frames": 86,
+    "avgFps": 58,
+    "p95": 16.8,
+    "max": 33.4,
+    "dropped": 3
+  },
+  {
+    "profile": "phone, CPU 4x",
+    "scenario": "order: timer running (idle)",
+    "tier": "lite",
+    "frames": 119,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "phone, CPU 4x",
+    "scenario": "dish page (3D plate if full)",
+    "tier": "lite",
+    "frames": 119,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "phone, CPU 4x",
+    "scenario": "home idle (WebGL bg if full)",
+    "tier": "lite",
+    "frames": 118,
+    "avgFps": 59.5,
+    "p95": 16.7,
+    "max": 33.3,
+    "dropped": 1
+  },
+  {
+    "profile": "phone, CPU 6x",
+    "scenario": "wheel: ring -> drum",
+    "tier": "lite",
+    "frames": 73,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "phone, CPU 6x",
+    "scenario": "wheel: next dish",
+    "tier": "lite",
+    "frames": 72,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "phone, CPU 6x",
+    "scenario": "wheel: idle (loop stopped)",
+    "tier": "lite",
+    "frames": 59,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "phone, CPU 6x",
+    "scenario": "card: 3D flip",
+    "tier": "lite",
+    "frames": 58,
+    "avgFps": 56.1,
+    "p95": 16.8,
+    "max": 83.3,
+    "dropped": 1
+  },
+  {
+    "profile": "phone, CPU 6x",
+    "scenario": "card: flip back",
+    "tier": "lite",
+    "frames": 59,
+    "avgFps": 58,
+    "p95": 16.8,
+    "max": 49.9,
+    "dropped": 1
+  },
+  {
+    "profile": "phone, CPU 6x",
+    "scenario": "card -> dish (shared photo)",
+    "tier": "lite",
+    "frames": 87,
+    "avgFps": 49.7,
+    "p95": 16.8,
+    "max": 233.3,
+    "dropped": 4
+  },
+  {
+    "profile": "phone, CPU 6x",
+    "scenario": "dish overlay: close",
+    "tier": "lite",
+    "frames": 56,
+    "avgFps": 54.2,
+    "p95": 16.8,
+    "max": 99.9,
+    "dropped": 2
+  },
+  {
+    "profile": "phone, CPU 6x",
+    "scenario": "page transition -> orders",
+    "tier": "lite",
+    "frames": 61,
+    "avgFps": 53.8,
+    "p95": 33.3,
+    "max": 49.9,
+    "dropped": 6
+  },
+  {
+    "profile": "phone, CPU 6x",
+    "scenario": "order: accepted (flip+banner)",
+    "tier": "lite",
+    "frames": 84,
+    "avgFps": 56,
+    "p95": 16.8,
+    "max": 66.7,
+    "dropped": 3
+  },
+  {
+    "profile": "phone, CPU 6x",
+    "scenario": "order: timer running (idle)",
+    "tier": "lite",
+    "frames": 119,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "phone, CPU 6x",
+    "scenario": "dish page (3D plate if full)",
+    "tier": "lite",
+    "frames": 120,
+    "avgFps": 60,
+    "p95": 16.7,
+    "max": 16.8,
+    "dropped": 0
+  },
+  {
+    "profile": "phone, CPU 6x",
+    "scenario": "home idle (WebGL bg if full)",
+    "tier": "lite",
+    "frames": 118,
+    "avgFps": 59,
+    "p95": 16.8,
+    "max": 50.1,
+    "dropped": 1
+  }
+]
