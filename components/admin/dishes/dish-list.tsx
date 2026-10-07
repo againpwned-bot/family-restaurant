@@ -10,6 +10,7 @@ import { DishPhoto } from "@/components/dish/dish-photo";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { matches } from "@/lib/search";
 
 export type DishListItem = {
   id: string;
@@ -21,17 +22,6 @@ export type DishListItem = {
   onMenu: boolean;
   ingredientCount: number;
 };
-
-/** Search-as-you-type over name and description, accent-insensitive. */
-export function matches(query: string, ...fields: string[]) {
-  const norm = (s: string) =>
-    s
-      .normalize("NFD")
-      .replace(/\p{Diacritic}/gu, "")
-      .toLowerCase();
-  const q = norm(query.trim());
-  return !q || fields.some((f) => norm(f).includes(q));
-}
 
 export function DishList({ dishes }: { dishes: DishListItem[] }) {
   const t = useTranslations();

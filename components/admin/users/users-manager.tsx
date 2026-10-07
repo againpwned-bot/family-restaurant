@@ -102,7 +102,7 @@ export function UsersManager({ users, meId }: { users: ManagedUser[]; meId: stri
                 <div className="mt-1.5 flex flex-wrap items-center gap-2">
                   <Badge className={ROLE_TONE[user.role]}>{t(`roles.${user.role}`)}</Badge>
                   <span className="text-xs text-muted-foreground">
-                    {t("adminUsers.created")}{" "}
+                    {t("adminUsers.createdAt")}{" "}
                     {format.dateTime(new Date(user.created_at), {
                       day: "numeric",
                       month: "short",

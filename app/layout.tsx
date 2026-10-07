@@ -55,7 +55,14 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-dvh antialiased">
         <NextIntlClientProvider>
           <MotionProvider>{children}</MotionProvider>
-          <Toaster theme={theme} position="top-center" richColors closeButton />
+          <Toaster
+            theme={theme}
+            position="bottom-center"
+            offset={{ bottom: 24 }}
+            mobileOffset={{ bottom: "calc(5.25rem + env(safe-area-inset-bottom))" }}
+            richColors
+            closeButton
+          />
         </NextIntlClientProvider>
       </body>
     </html>

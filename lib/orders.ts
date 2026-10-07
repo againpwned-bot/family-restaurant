@@ -26,3 +26,6 @@ export function newer<T extends { updated_at: string }>(a: T | undefined, b: T):
 }
 
 export const TIMER_PRESETS = [10, 15, 20, 30, 45, 60] as const;
+
+/** Page size of the client's order history. */
+export const HISTORY_PAGE = 10;

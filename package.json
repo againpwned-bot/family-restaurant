@@ -18,7 +18,7 @@
     "dev:local": "tsx dev/local-supabase/start.ts",
     "emulator": "tsx dev/local-supabase/start.ts --api",
     "test:unit": "tsx --test tests/*.test.ts",
-    "test:e2e": "tsx tests/e2e/admin.e2e.mts"
+    "test:e2e": "tsx tests/e2e/admin.e2e.mts && tsx tests/e2e/client.e2e.mts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",

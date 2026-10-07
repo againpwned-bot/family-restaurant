@@ -1,0 +1,140 @@
+"use client";
+
+import { LoaderCircle, Receipt } from "lucide-react";
+import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { useCallback, useMemo, useState } from "react";
+
+import { ClientOrderCard, STATUS_TONE, useOrderTimes } from "@/components/client/client-order-card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { useRealtime } from "@/hooks/use-realtime";
+import { CLOSED_STATUSES, HISTORY_PAGE, OPEN_STATUSES, isOpen, newer } from "@/lib/orders";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { Order } from "@/lib/supabase/database.types";
+import { cn } from "@/lib/utils";
+
+export function MyOrders({
+  userId,
+  initialActive,
+  initialHistory,
+}: {
+  userId: string;
+  initialActive: Order[];
+  initialHistory: Order[];
+}) {
+  const t = useTranslations();
+  const { time, day } = useOrderTimes();
+  const [orders, setOrders] = useState(() => new Map([...initialActive, ...initialHistory].map((o) => [o.id, o])));
+  const [hasMore, setHasMore] = useState(initialHistory.length === HISTORY_PAGE);
+  const [loading, setLoading] = useState(false);
+
+  const apply = useCallback((o: Order) => setOrders((m) => new Map(m).set(o.id, newer(m.get(o.id), o))), []);
+
+  const resync = useCallback(async () => {
+    const { data } = await getSupabaseBrowserClient()
+      .from("orders")
+      .select("*")
+      .eq("client_id", userId)
+      .in("status", [...OPEN_STATUSES]);
+    data?.forEach(apply);
+  }, [apply, userId]);
+
+  useRealtime(
+    "my-orders",
+    [{ table: "orders", filter: `client_id=eq.${userId}` }],
+    (_t, payload) => {
+      if (payload.eventType !== "DELETE") apply(payload.new as unknown as Order);
+    },
+    resync,
+  );
+
+  const all = useMemo(() => [...orders.values()], [orders]);
+  const active = all.filter((o) => isOpen(o.status)).sort((a, b) => +new Date(a.created_at) - +new Date(b.created_at));
+  const history = all
+    .filter((o) => !isOpen(o.status))
+    .sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+
+  async function loadMore() {
+    setLoading(true);
+    const oldest = history.at(-1)?.created_at;
+    let query = getSupabaseBrowserClient()
+      .from("orders")
+      .select("*")
+      .eq("client_id", userId)
+      .in("status", [...CLOSED_STATUSES])
+      .order("created_at", { ascending: false })
+      .limit(HISTORY_PAGE);
+    if (oldest) query = query.lt("created_at", oldest);
+    const { data } = await query;
+    setLoading(false);
+    if (data) {
+      data.forEach(apply);
+      setHasMore(data.length === HISTORY_PAGE);
+    }
+  }
+
+  if (!all.length) {
+    return (
+      <div className="grid place-items-center gap-3 rounded-3xl border border-dashed border-border bg-card px-6 py-16 text-center">
+        <span className="grid size-16 place-items-center rounded-full bg-secondary text-secondary-foreground">
+          <Receipt className="size-8" aria-hidden="true" />
+        </span>
+        <h2 className="font-heading text-2xl font-bold">{t("orders.empty")}</h2>
+        <p className="text-muted-foreground">{t("orders.emptyText")}</p>
+        <Button asChild size="lg" className="mt-2">
+          <Link href="/">{t("orders.goToMenu")}</Link>
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-start">
+      <section aria-labelledby="active-title" className="grid grid-cols-1 gap-3">
+        <h2 id="active-title" className="font-sans text-sm font-bold tracking-wide uppercase">
+          {t("orders.active")} · {active.length}
+        </h2>
+        {active.length ? (
+          active.map((o) => <ClientOrderCard key={o.id} order={o} onChange={apply} />)
+        ) : (
+          <p className="rounded-3xl border border-dashed border-border bg-card px-4 py-8 text-center text-muted-foreground">
+            {t("orders.noActive")}
+          </p>
+        )}
+      </section>
+
+      <section aria-labelledby="history-title" className="grid grid-cols-1 gap-3">
+        <h2 id="history-title" className="font-sans text-sm font-bold tracking-wide text-muted-foreground uppercase">
+          {t("orders.history")}
+        </h2>
+        <ul className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-3xl border border-border bg-card">
+          {history.map((o) => (
+            <li key={o.id}>
+              <Link
+                href={`/orders/${o.id}`}
+                className="hover-overlay flex items-center gap-3 px-4 py-3 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-semibold">
+                    {o.dish_name} <span className="text-muted-foreground">× {o.quantity}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    #{o.number} · {day(o.created_at)} · {time(o.created_at)}
+                  </p>
+                </div>
+                <Badge className={cn("shrink-0", STATUS_TONE[o.status])}>{t(`orderStatus.${o.status}`)}</Badge>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        {hasMore ? (
+          <Button variant="outline" onClick={() => void loadMore()} disabled={loading} className="justify-self-center">
+            {loading ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : null}
+            {t("orders.loadMore")}
+          </Button>
+        ) : null}
+      </section>
+    </div>
+  );
+}

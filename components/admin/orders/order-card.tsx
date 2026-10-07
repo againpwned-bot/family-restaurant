@@ -96,7 +96,7 @@ export function OrderCard({
         <div className="min-w-0">
           <p className="font-heading text-lg leading-tight font-bold">
             {order.dish_name}{" "}
-            <span className="font-sans text-base font-bold text-brand-ink">
+            <span className="font-sans text-base font-bold whitespace-nowrap text-brand-ink">
               {t("adminOrders.quantity", { quantity: order.quantity })}
             </span>
           </p>

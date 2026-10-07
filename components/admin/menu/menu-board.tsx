@@ -6,7 +6,6 @@ import { useTranslations } from "next-intl";
 import { useCallback, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-import { matches } from "@/components/admin/dishes/dish-list";
 import { DishPhoto } from "@/components/dish/dish-photo";
 import {
   AlertDialog,
@@ -24,6 +23,7 @@ import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useRealtime } from "@/hooks/use-realtime";
 import { dbErrorKey } from "@/lib/errors";
+import { matches } from "@/lib/search";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 

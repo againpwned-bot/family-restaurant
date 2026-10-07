@@ -152,7 +152,28 @@
   },
   "home": {
     "greeting": "Poftă bună, {name}!",
-    "title": "Meniul de azi"
+    "title": "Meniul de azi",
+    "count": "{count, plural, =0 {Nimic azi} one {# preparat azi} few {# preparate azi} other {# de preparate azi}}",
+    "searchPlaceholder": "Caută în meniu…",
+    "filtersLabel": "Filtre",
+    "filters": {
+      "all": "Toate",
+      "quick": "Gata repede (≤ 30 min)"
+    },
+    "viewLabel": "Mod de afișare",
+    "viewWheel": "Roată",
+    "viewList": "Listă",
+    "wheelLabel": "Meniul de azi",
+    "wheelAction": "Vezi",
+    "wheelHint": "Derulează, trage sau folosește săgețile ca să învârți roata. Apasă pe un preparat ca să-l comanzi.",
+    "empty": "Bucătăria n-a pus încă meniul de azi.",
+    "emptyText": "Revino puțin mai târziu: meniul apare aici imediat ce e gata.",
+    "noResults": "Nimic din meniu nu se potrivește cu „{query}”.",
+    "order": "Comandă",
+    "orderDish": "Comandă {name}",
+    "ingredientsPreview": "Cu {list}",
+    "flipHint": "Ingrediente",
+    "flipBack": "Înapoi la poză"
   },
   "admin": {
     "greeting": "Bună, {name}!",
@@ -382,7 +403,8 @@
       "cannotChangeOwnRole": "Nu îți poți schimba propriul rol.",
       "notFound": "Utilizatorul nu mai există.",
       "unknown": "Ceva n-a mers. Încearcă din nou."
-    }
+    },
+    "createdAt": "Creat"
   },
   "notifications": {
     "region": "Notificări",
@@ -413,5 +435,93 @@
       "title": "Mai durează puțin",
       "body": "{dish}: încă {minutes} min, gata pe la {time}."
     }
+  },
+  "dish": {
+    "back": "Înapoi la meniu",
+    "cookTime": "Gata în aproximativ {minutes} min",
+    "onMenu": "În meniul de azi",
+    "ingredients": "Ingrediente",
+    "ingredientsHint": "pentru o porție",
+    "toTaste": "după gust",
+    "noIngredients": "Ingredientele nu au fost trecute.",
+    "notToday": "Preparatul nu e în meniul de azi, deci nu poate fi comandat acum."
+  },
+  "orderForm": {
+    "title": "Comandă",
+    "quantity": "Câte porții?",
+    "decrease": "O porție mai puțin",
+    "increase": "O porție în plus",
+    "portions": "{count, plural, one {# porție} few {# porții} other {# de porții}}",
+    "when": "Când o vrei?",
+    "asap": "Cât mai repede",
+    "atTime": "La o anumită oră",
+    "time": "Ora",
+    "tomorrow": "mâine, {time}",
+    "comment": "Mențiuni (opțional)",
+    "commentPlaceholder": "ex. fără ceapă, mai picant…",
+    "commentCount": "{count}/500",
+    "submit": "Trimite comanda",
+    "submitting": "Se trimite…",
+    "sent": "Comanda a fost trimisă! Te anunțăm când e acceptată.",
+    "timeInvalid": "Alege o oră validă."
+  },
+  "orders": {
+    "title": "Comenzile mele",
+    "description": "Urmărește-ți comenzile în timp real.",
+    "active": "În desfășurare",
+    "history": "Istoric",
+    "empty": "Nicio comandă încă.",
+    "emptyText": "Alege ceva bun din meniul de azi.",
+    "goToMenu": "Vezi meniul",
+    "noActive": "Nicio comandă în desfășurare.",
+    "loadMore": "Încarcă mai multe",
+    "orderNumber": "Comanda #{number}",
+    "viewOrder": "Vezi comanda #{number}",
+    "placedAt": "Trimisă {date}, la {time}",
+    "requestedFor": "Pentru {time}",
+    "asap": "Cât mai repede",
+    "eta": "Gata pe la {time}",
+    "remaining": "{time} rămase",
+    "overdue": "Mai durează puțin…",
+    "reason": "Motiv: {reason}",
+    "cancel": "Anulează comanda",
+    "cancelTitle": "Anulezi comanda #{number}?",
+    "cancelText": "Bucătarul va fi anunțat imediat.",
+    "cancelConfirm": "Da, anulează",
+    "keep": "Nu, păstreaz-o",
+    "cancelled": "Comanda a fost anulată.",
+    "cancelHint": "Poți anula până intră pe foc.",
+    "back": "Înapoi la comenzi",
+    "stepsLabel": "Progresul comenzii",
+    "timeline": "Ce s-a întâmplat",
+    "comment": "Mențiunile tale",
+    "orderAgain": "Comandă din nou",
+    "timerLabel": "Timp rămas până e gata",
+    "status": {
+      "received": "Am primit comanda. Așteaptă confirmarea bucătarului.",
+      "accepted": "Comanda a fost acceptată și intră pe foc în curând.",
+      "cooking": "Se gătește acum.",
+      "ready": "E gata! Vino să o iei.",
+      "handed_over": "Predată. Poftă bună!",
+      "rejected": "Comanda a fost refuzată.",
+      "cancelled": "Ai anulat comanda."
+    },
+    "steps": {
+      "received": "Primită",
+      "accepted": "Acceptată",
+      "cooking": "La foc",
+      "ready": "Gata"
+    },
+    "events": {
+      "created": "Comandă trimisă",
+      "accepted": "Acceptată de {name}",
+      "rejected": "Refuzată de {name}",
+      "cooking": "Pusă pe foc",
+      "extended": "Timp prelungit cu {minutes} min",
+      "ready": "Gata!",
+      "handed_over": "Predată",
+      "cancelled": "Anulată"
+    },
+    "someone": "bucătar"
   }
 }

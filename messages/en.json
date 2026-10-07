@@ -152,7 +152,28 @@
   },
   "home": {
     "greeting": "Enjoy your meal, {name}!",
-    "title": "Today's menu"
+    "title": "Today's menu",
+    "count": "{count, plural, =0 {Nothing today} one {# dish today} other {# dishes today}}",
+    "searchPlaceholder": "Search the menu…",
+    "filtersLabel": "Filters",
+    "filters": {
+      "all": "All",
+      "quick": "Quick (≤ 30 min)"
+    },
+    "viewLabel": "View",
+    "viewWheel": "Wheel",
+    "viewList": "List",
+    "wheelLabel": "Today's menu",
+    "wheelAction": "View",
+    "wheelHint": "Scroll, drag or use the arrow keys to turn the wheel. Tap a dish to order it.",
+    "empty": "The kitchen hasn't set today's menu yet.",
+    "emptyText": "Check back a little later: the menu shows up here as soon as it's ready.",
+    "noResults": "Nothing on the menu matches “{query}”.",
+    "order": "Order",
+    "orderDish": "Order {name}",
+    "ingredientsPreview": "With {list}",
+    "flipHint": "Ingredients",
+    "flipBack": "Back to the photo"
   },
   "admin": {
     "greeting": "Hi, {name}!",
@@ -382,7 +403,8 @@
       "cannotChangeOwnRole": "You can't change your own role.",
       "notFound": "This user no longer exists.",
       "unknown": "Something went wrong. Please try again."
-    }
+    },
+    "createdAt": "Created"
   },
   "notifications": {
     "region": "Notifications",
@@ -413,5 +435,93 @@
       "title": "A little longer",
       "body": "{dish}: {minutes} more min, ready around {time}."
     }
+  },
+  "dish": {
+    "back": "Back to the menu",
+    "cookTime": "Ready in about {minutes} min",
+    "onMenu": "On today's menu",
+    "ingredients": "Ingredients",
+    "ingredientsHint": "for one portion",
+    "toTaste": "to taste",
+    "noIngredients": "No ingredients listed.",
+    "notToday": "This dish isn't on today's menu, so it can't be ordered right now."
+  },
+  "orderForm": {
+    "title": "Order",
+    "quantity": "How many portions?",
+    "decrease": "One portion less",
+    "increase": "One more portion",
+    "portions": "{count, plural, one {# portion} other {# portions}}",
+    "when": "When do you want it?",
+    "asap": "As soon as possible",
+    "atTime": "At a specific time",
+    "time": "Time",
+    "tomorrow": "tomorrow, {time}",
+    "comment": "Notes (optional)",
+    "commentPlaceholder": "e.g. no onion, extra spicy…",
+    "commentCount": "{count}/500",
+    "submit": "Send order",
+    "submitting": "Sending…",
+    "sent": "Your order was sent! We'll let you know when it's accepted.",
+    "timeInvalid": "Pick a valid time."
+  },
+  "orders": {
+    "title": "My orders",
+    "description": "Follow your orders in real time.",
+    "active": "In progress",
+    "history": "History",
+    "empty": "No orders yet.",
+    "emptyText": "Pick something good from today's menu.",
+    "goToMenu": "See the menu",
+    "noActive": "No orders in progress.",
+    "loadMore": "Load more",
+    "orderNumber": "Order #{number}",
+    "viewOrder": "View order #{number}",
+    "placedAt": "Sent {date} at {time}",
+    "requestedFor": "For {time}",
+    "asap": "As soon as possible",
+    "eta": "Ready around {time}",
+    "remaining": "{time} left",
+    "overdue": "Taking a little longer…",
+    "reason": "Reason: {reason}",
+    "cancel": "Cancel order",
+    "cancelTitle": "Cancel order #{number}?",
+    "cancelText": "The cook is notified right away.",
+    "cancelConfirm": "Yes, cancel",
+    "keep": "No, keep it",
+    "cancelled": "The order was cancelled.",
+    "cancelHint": "You can cancel until it starts cooking.",
+    "back": "Back to orders",
+    "stepsLabel": "Order progress",
+    "timeline": "What happened",
+    "comment": "Your notes",
+    "orderAgain": "Order again",
+    "timerLabel": "Time left until ready",
+    "status": {
+      "received": "We got your order. Waiting for the cook to confirm.",
+      "accepted": "Your order was accepted and will start cooking soon.",
+      "cooking": "It's cooking now.",
+      "ready": "It's ready! Come and get it.",
+      "handed_over": "Handed over. Enjoy!",
+      "rejected": "Your order was rejected.",
+      "cancelled": "You cancelled this order."
+    },
+    "steps": {
+      "received": "Received",
+      "accepted": "Accepted",
+      "cooking": "Cooking",
+      "ready": "Ready"
+    },
+    "events": {
+      "created": "Order sent",
+      "accepted": "Accepted by {name}",
+      "rejected": "Rejected by {name}",
+      "cooking": "Started cooking",
+      "extended": "Time extended by {minutes} min",
+      "ready": "Ready!",
+      "handed_over": "Handed over",
+      "cancelled": "Cancelled"
+    },
+    "someone": "the cook"
   }
 }
