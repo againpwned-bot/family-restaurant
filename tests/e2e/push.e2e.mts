@@ -1,127 +1,46 @@
-// Stage 4 (notifications) end-to-end checks. Run with `npm run dev:local`.
-// Subscriptions on the reserved ".invalid" TLD are not contacted by the local
-// send-push function; what it would send is appended to push-log.jsonl.
+// Notifications end-to-end checks: the service worker's subscription route,
+// the service worker showing pushes, and the opt-in UI. Run with `npm run dev`
+// in another terminal (see helpers.mts). What the server sends for each event
+// is covered by tests/push.test.ts.
 
-import fs from "node:fs";
-import path from "node:path";
-
-import { BASE, SHOTS, account, api, browser, check, context, done, login } from "./helpers.mjs";
-
-const LOG = path.join(process.cwd(), "dev/local-supabase/.data/push-log.jsonl");
-const readLog = () =>
-  fs.existsSync(LOG)
-    ? fs
-        .readFileSync(LOG, "utf8")
-        .trim()
-        .split("\n")
-        .filter(Boolean)
-        .map(
-          (l) =>
-            JSON.parse(l) as {
-              endpoint: string;
-              payload: { title: string; body: string; url: string; type: string; lang: string };
-            },
-        )
-    : [];
-const waitFor = async <T,>(fn: () => T | undefined | null | false, ms = 8000): Promise<T | null> => {
-  const end = Date.now() + ms;
-  while (Date.now() < end) {
-    const v = fn();
-    if (v) return v;
-    await new Promise((r) => setTimeout(r, 150));
-  }
-  return null;
-};
+import { BASE, SHOTS, account, browser, check, context, done, login, temporaryAccount } from "./helpers.mjs";
 
 const b = await browser({ full: true });
-const adminApi = await api(account("admin"));
 const clientAcc = account("client");
-const clientApi = await api(clientAcc);
-const run = Date.now().toString(36);
-fs.rmSync(LOG, { force: true });
 
-const { data: dishes } = await adminApi.from("dishes").select("id, name").is("archived_at", null);
-const sarmale = dishes!.find((d) => d.name.startsWith("Sarmale"))!;
-await adminApi.rpc("set_dish_available_today", { p_dish_id: sarmale.id, p_available: true });
-
-console.log("\n== DB trigger -> Edge Function -> Web Push");
-const live = `https://fcm.invalid/${run}/emil`;
-const gone = `https://fcm.invalid/${run}/gone`;
-for (const endpoint of [live, gone]) {
-  const { error } = await clientApi.rpc("register_push_subscription", {
-    p_endpoint: endpoint,
-    p_p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
-    p_auth: "tBHItJI5svbpez7KI4CCXg",
-    p_user_agent: "e2e",
+console.log("\n== subscription route (used by the service worker when the browser rotates keys)");
+{
+  // A throwaway account: deleting it also deletes the made-up subscription below.
+  const temp = await temporaryAccount(b);
+  const ctx = await context(b, "desktop");
+  const page = await login(ctx, temp.account);
+  const post = (body: unknown) =>
+    page.evaluate(
+      (payload) =>
+        fetch("/api/push/subscription", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        }).then(async (r) => ({ status: r.status, body: await r.json() })),
+      body,
+    );
+  const endpoint = `https://push.invalid/e2e-${Date.now().toString(36)}`;
+  const keys = { p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM", auth: "tBHItJI5svbpez7KI4CCXg" };
+  const ok = await post({ subscription: { endpoint, keys }, userAgent: "e2e" });
+  check("signed in: subscription saved", ok.status === 200 && ok.body.ok === true, ok);
+  const bad = await post({ subscription: { endpoint: "http://not-https.example/x", keys } });
+  check("non-https endpoint refused", bad.status === 400 && bad.body.error === "invalid_subscription", bad);
+  const missing = await post({ subscription: { endpoint } });
+  check("missing keys refused", missing.status === 400, missing);
+  const anonymous = await fetch(`${BASE}/api/push/subscription`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ subscription: { endpoint, keys } }),
   });
-  check(`register subscription ${endpoint.split("/").pop()}`, !error, error);
+  check("signed out: 401", anonymous.status === 401);
+  await ctx.close();
+  await temp.remove();
 }
-const { data: order } = await clientApi.rpc("place_order", { p_dish_id: sarmale.id, p_quantity: 1 });
-await adminApi.rpc("accept_order", { p_order_id: order!.id, p_minutes: 25 });
-const accepted = await waitFor(() => readLog().find((l) => l.endpoint === live && l.payload.type === "order_accepted"));
-check("accepted -> push sent to the client's browser", !!accepted);
-check(
-  `push text is Romanian ("${accepted?.payload.title}" / "${accepted?.payload.body}")`,
-  accepted?.payload.title === "Comanda ta a fost acceptată" &&
-    accepted.payload.body.includes("Sarmale cu mămăligă") &&
-    accepted.payload.body.includes("25 min"),
-);
-check("push opens the order page", accepted?.payload.url === `/orders/${order!.id}`);
-await waitFor(async () => false, 600);
-const { data: subs } = await clientApi.from("push_subscriptions").select("endpoint");
-check(
-  "expired subscription (410) was removed",
-  !(subs ?? []).some((s) => s.endpoint === gone) && (subs ?? []).some((s) => s.endpoint === live),
-  subs,
-);
-const { data: notif } = await clientApi
-  .from("notifications")
-  .select("pushed_at")
-  .eq("order_id", order!.id)
-  .eq("type", "order_accepted")
-  .single();
-check("notification marked as pushed", !!notif?.pushed_at);
-
-await adminApi.rpc("reject_order", { p_order_id: order!.id, p_reason: "Nu mai am varză" });
-const rejected = await waitFor(() => readLog().find((l) => l.endpoint === live && l.payload.type === "order_rejected"));
-check(
-  "rejection push carries the reason",
-  rejected?.payload.body === "Sarmale cu mămăligă: Nu mai am varză",
-  rejected?.payload,
-);
-
-// Staff side: a new order pushes to the owner and the admin.
-const staffEndpoint = `https://fcm.invalid/${run}/admin`;
-await adminApi.rpc("register_push_subscription", {
-  p_endpoint: staffEndpoint,
-  p_p256dh: "BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM",
-  p_auth: "tBHItJI5svbpez7KI4CCXg",
-});
-const { data: o2 } = await clientApi.rpc("place_order", { p_dish_id: sarmale.id, p_quantity: 2 });
-const newOrder = await waitFor(() =>
-  readLog().find((l) => l.endpoint === staffEndpoint && l.payload.type === "order_new"),
-);
-check(
-  `new order -> push to the kitchen ("${newOrder?.payload.title}")`,
-  newOrder?.payload.title.startsWith("Comandă nouă de la") && newOrder.payload.body === "Sarmale cu mămăligă × 2",
-);
-await clientApi.rpc("cancel_order", { p_order_id: o2!.id });
-const cancelled = await waitFor(() =>
-  readLog().find((l) => l.endpoint === staffEndpoint && l.payload.type === "order_cancelled"),
-);
-check("cancellation -> push to the kitchen", !!cancelled);
-
-// Language follows the recipient's profile.
-const me = (await clientApi.auth.getUser()).data.user!.id;
-await clientApi.from("profiles").update({ locale: "en" }).eq("id", me);
-await clientApi.rpc("send_test_notification");
-const test = await waitFor(() => readLog().find((l) => l.endpoint === live && l.payload.type === "test"));
-check(
-  `English recipient gets English text ("${test?.payload.title}")`,
-  test?.payload.title === "Notifications work!" && test.payload.lang === "en",
-);
-await clientApi.from("profiles").update({ locale: "ro" }).eq("id", me);
-for (const e of [live, staffEndpoint]) await adminApi.from("push_subscriptions").delete().eq("endpoint", e);
 
 console.log("\n== service worker shows pushes");
 {

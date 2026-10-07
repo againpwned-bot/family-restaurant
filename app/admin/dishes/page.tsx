@@ -8,7 +8,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 import { requireProfile } from "@/lib/auth/dal";
 import { kitchenDate } from "@/lib/dates";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { asUser } from "@/lib/server/db";
+import { catalogue } from "@/lib/server/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("adminDishes");
@@ -16,15 +17,9 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function AdminDishesPage() {
-  await requireProfile({ roles: ["owner", "admin"] });
+  const profile = await requireProfile({ roles: ["owner", "admin"] });
   const t = await getTranslations("adminDishes");
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase
-    .from("dishes")
-    .select("id, name, description, photo_path, photo_blur, cook_minutes, available_on, dish_ingredients(id)")
-    .is("archived_at", null)
-    .order("name");
-  if (error) throw new Error(error.message);
+  const data = await asUser(profile.id, (tx) => catalogue(tx));
   const today = kitchenDate();
 
   return (
@@ -50,7 +45,7 @@ export default async function AdminDishesPage() {
           photo_blur: d.photo_blur,
           cook_minutes: d.cook_minutes,
           onMenu: d.available_on === today,
-          ingredientCount: d.dish_ingredients.length,
+          ingredientCount: d.ingredient_count,
         }))}
       />
     </>

@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth/dal";
+import { asUser } from "@/lib/server/db";
+import { dbErrorKey } from "@/lib/errors";
 
 // Used by the service worker when the browser rotates a push subscription
 // (pushsubscriptionchange). The session cookie identifies the user; the
@@ -15,13 +17,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_subscription" }, { status: 400 });
   }
 
-  const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.rpc("register_push_subscription", {
-    p_endpoint: sub.endpoint,
-    p_p256dh: sub.keys.p256dh,
-    p_auth: sub.keys.auth,
-    p_user_agent: body?.userAgent?.slice(0, 300) ?? null,
-  });
-  if (error) return NextResponse.json({ error: error.message }, { status: error.message === "forbidden" ? 401 : 400 });
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "forbidden" }, { status: 401 });
+  try {
+    await asUser(session.profile.id, (tx) =>
+      tx.query("select public.register_push_subscription($1, $2, $3, $4)", [
+        sub.endpoint,
+        sub.keys!.p256dh,
+        sub.keys!.auth,
+        body?.userAgent?.slice(0, 300) ?? null,
+      ]),
+    );
+  } catch (error) {
+    const message = (error as Error).message;
+    return NextResponse.json({ error: message === "invalid_subscription" ? message : dbErrorKey(error as Error) }, {
+      status: 400,
+    });
+  }
   return NextResponse.json({ ok: true });
 }

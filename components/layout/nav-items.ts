@@ -11,7 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import type { AppRole } from "@/lib/supabase/database.types";
+import type { AppRole } from "@/lib/types";
 
 export type NavKey =
   "menu" | "myOrders" | "settings" | "orders" | "todayMenu" | "dishes" | "shopping" | "users" | "adminPanel";

@@ -1,8 +1,12 @@
 "use server";
 
-import { getCurrentProfile } from "@/lib/auth/dal";
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, usernameToEmail } from "@/lib/auth/username";
-import { createSupabaseStatelessClient } from "@/lib/supabase/server";
+import { getSession } from "@/lib/auth/dal";
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/lib/auth/username";
+import { setPassword } from "@/lib/server/accounts";
+import { row } from "@/lib/server/database";
+import { getDb } from "@/lib/server/db";
+import { verifyPassword } from "@/lib/server/password";
+import { clearFailures, isRateLimited, recordFailure } from "@/lib/server/rate-limit";
 
 export type ChangePasswordError =
   "required" | "too_short" | "too_long" | "mismatch" | "same" | "wrong_current" | "rate_limited" | "unknown";
@@ -10,8 +14,8 @@ export type ChangePasswordError =
 export type ChangePasswordState = { ok?: boolean; error?: ChangePasswordError; at?: number };
 
 export async function changePassword(_prev: ChangePasswordState, formData: FormData): Promise<ChangePasswordState> {
-  const profile = await getCurrentProfile();
-  if (!profile) return { error: "unknown" };
+  const session = await getSession();
+  if (!session) return { error: "unknown" };
 
   const current = String(formData.get("current") ?? "");
   const next = String(formData.get("new") ?? "");
@@ -23,25 +27,24 @@ export async function changePassword(_prev: ChangePasswordState, formData: FormD
   if (next !== confirm) return { error: "mismatch" };
   if (next === current) return { error: "same" };
 
-  // Verify the current password on a throwaway session, then change it from
-  // that fresh session (satisfies "secure password change" if it is enabled),
-  // and close it again. The user's real session is never touched.
-  const verifier = createSupabaseStatelessClient();
-  const { error: signInError } = await verifier.auth.signInWithPassword({
-    email: usernameToEmail(profile.username),
-    password: current,
-  });
-  if (signInError) {
-    if (signInError.status === 429) return { error: "rate_limited" };
-    return { error: "wrong_current" };
-  }
+  const limitKey = `change-password|${session.profile.id}`;
+  if (isRateLimited(limitKey)) return { error: "rate_limited" };
 
-  const { error: updateError } = await verifier.auth.updateUser({ password: next });
-  await verifier.auth.signOut({ scope: "local" });
-  if (updateError) {
-    if (updateError.code === "weak_password") return { error: "too_short" };
+  try {
+    const db = await getDb();
+    const user = await row<{ password_hash: string }>(db, "select password_hash from auth.users where id = $1", [
+      session.profile.id,
+    ]);
+    if (!user || !(await verifyPassword(current, user.password_hash))) {
+      recordFailure(limitKey);
+      return { error: "wrong_current" };
+    }
+    clearFailures(limitKey);
+    // Other devices signed in with the old password are signed out; this one stays.
+    await setPassword(db, session.profile.id, next, session.sessionId);
+  } catch (error) {
+    console.error("[change-password]", error);
     return { error: "unknown" };
   }
-
   return { ok: true, at: Date.now() };
 }

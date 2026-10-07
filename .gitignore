@@ -46,18 +46,14 @@ next-env.d.ts
 scripts/users.local.json
 scripts/*.local.json
 
-# supabase cli
-supabase/.temp
-supabase/.branches
+# this computer's data: database, session key, push keys, dish photos
+/data/
 
 # lighthouse / profiling reports
 /reports/*.json
 
 # python caches (uipro skill scripts)
 __pycache__/
-
-# local Supabase emulator data
-dev/local-supabase/.data/
 
 # e2e screenshots
 tests/e2e/screenshots/

@@ -28,8 +28,9 @@ import { useNow } from "@/hooks/use-now";
 import { KITCHEN_TZ, formatDuration, kitchenDate } from "@/lib/dates";
 import { dbErrorKey } from "@/lib/errors";
 import { canCancel, hasTimer } from "@/lib/orders";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { Order, OrderStatus } from "@/lib/supabase/database.types";
+import { cancelOrder } from "@/app/actions/orders";
+import { safe } from "@/lib/action-result";
+import type { Order, OrderStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export const STATUS_TONE: Record<OrderStatus, string> = {
@@ -109,7 +110,7 @@ export function CancelOrderButton({
             variant="destructive"
             onClick={async () => {
               setBusy(true);
-              const { data, error } = await getSupabaseBrowserClient().rpc("cancel_order", { p_order_id: order.id });
+              const { data, error } = await safe(cancelOrder(order.id));
               setBusy(false);
               if (error || !data) return void toast.error(t(`errors.db.${dbErrorKey(error)}`));
               onCancelled(data);

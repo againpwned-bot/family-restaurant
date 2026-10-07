@@ -4,12 +4,14 @@ import { revalidatePath } from "next/cache";
 
 import { requireProfile } from "@/lib/auth/dal";
 import { isAppRole } from "@/lib/auth/roles";
-import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, isValidUsername, usernameToEmail } from "@/lib/auth/username";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import type { AppRole } from "@/lib/supabase/database.types";
+import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH, isValidUsername } from "@/lib/auth/username";
+import { UsernameTakenError, createAccount, setPassword } from "@/lib/server/accounts";
+import { row, type Queryable } from "@/lib/server/database";
+import { getDb } from "@/lib/server/db";
+import type { AppRole } from "@/lib/types";
 
 // Owner-only user management. Every action re-checks the caller's role from
-// the database before touching the service-role client.
+// the database first; the writes then run with full database rights.
 
 export type UserError =
   | "usernameInvalid"
@@ -37,9 +39,8 @@ function checkDisplayName(name: string): UserError | null {
   return trimmed.length < 1 || trimmed.length > 60 ? "displayNameRequired" : null;
 }
 
-async function ownerCount(admin: ReturnType<typeof createSupabaseAdminClient>) {
-  const { count } = await admin.from("profiles").select("id", { count: "exact", head: true }).eq("role", "owner");
-  return count ?? 0;
+async function ownerCount(db: Queryable) {
+  return (await row<{ n: number }>(db, "select count(*)::int as n from public.profiles where role = 'owner'"))?.n ?? 0;
 }
 
 export async function createUser(input: {
@@ -57,30 +58,17 @@ export async function createUser(input: {
   const passwordError = checkPassword(input.password);
   if (passwordError) return { ok: false, error: passwordError };
 
-  const admin = createSupabaseAdminClient();
-  const { data: taken } = await admin.from("profiles").select("id").ilike("username", username).maybeSingle();
-  if (taken) return { ok: false, error: "usernameTaken" };
-
-  const { data, error } = await admin.auth.admin.createUser({
-    email: usernameToEmail(username),
-    password: input.password,
-    email_confirm: true,
-    app_metadata: { role: input.role },
-    user_metadata: { username },
-  });
-  if (error || !data.user) {
-    return { ok: false, error: error?.code === "email_exists" ? "usernameTaken" : "unknown" };
-  }
-
-  const { error: profileError } = await admin.from("profiles").insert({
-    id: data.user.id,
-    username,
-    display_name: input.displayName.trim(),
-    role: input.role,
-  });
-  if (profileError) {
-    await admin.auth.admin.deleteUser(data.user.id);
-    return { ok: false, error: profileError.code === "23505" ? "usernameTaken" : "unknown" };
+  try {
+    await createAccount(await getDb(), {
+      username,
+      displayName: input.displayName,
+      role: input.role,
+      password: input.password,
+    });
+  } catch (error) {
+    if (error instanceof UsernameTakenError) return { ok: false, error: "usernameTaken" };
+    console.error("[users]", error);
+    return { ok: false, error: "unknown" };
   }
 
   revalidatePath("/admin/users");
@@ -93,22 +81,29 @@ export async function updateUser(input: { id: string; displayName: string; role:
   if (nameError) return { ok: false, error: nameError };
   if (!isAppRole(input.role)) return { ok: false, error: "roleInvalid" };
 
-  const admin = createSupabaseAdminClient();
-  const { data: target } = await admin.from("profiles").select("id, role").eq("id", input.id).maybeSingle();
+  const db = await getDb();
+  const target = await row<{ id: string; role: AppRole }>(db, "select id, role from public.profiles where id = $1", [
+    input.id,
+  ]).catch(() => null);
   if (!target) return { ok: false, error: "notFound" };
   if (target.id === me.id && input.role !== me.role) return { ok: false, error: "cannotChangeOwnRole" };
-  if (target.role === "owner" && input.role !== "owner" && (await ownerCount(admin)) <= 1) {
+  if (target.role === "owner" && input.role !== "owner" && (await ownerCount(db)) <= 1) {
     return { ok: false, error: "lastOwner" };
   }
 
-  const { error } = await admin
-    .from("profiles")
-    .update({ display_name: input.displayName.trim(), role: input.role })
-    .eq("id", input.id);
-  if (error) return { ok: false, error: "unknown" };
-  if (target.role !== input.role) {
-    // Keep the role claim in the JWT in sync (read by proxy.ts).
-    await admin.auth.admin.updateUserById(input.id, { app_metadata: { role: input.role } });
+  try {
+    await db.transaction(async (tx) => {
+      await tx.query("update public.profiles set display_name = $2, role = $3 where id = $1", [
+        input.id,
+        input.displayName.trim(),
+        input.role,
+      ]);
+      // The role is also in the session cookie (read by proxy.ts): a new role means signing in again.
+      if (target.role !== input.role) await tx.query("delete from auth.sessions where user_id = $1", [input.id]);
+    });
+  } catch (error) {
+    console.error("[users]", error);
+    return { ok: false, error: "unknown" };
   }
 
   revalidatePath("/admin/users");
@@ -120,9 +115,16 @@ export async function resetPassword(input: { id: string; password: string }): Pr
   const passwordError = checkPassword(input.password);
   if (passwordError) return { ok: false, error: passwordError };
 
-  const admin = createSupabaseAdminClient();
-  const { error } = await admin.auth.admin.updateUserById(input.id, { password: input.password });
-  if (error) return { ok: false, error: error.status === 404 ? "notFound" : "unknown" };
+  try {
+    const db = await getDb();
+    const target = await row(db, "select 1 from auth.users where id = $1", [input.id]).catch(() => null);
+    if (!target) return { ok: false, error: "notFound" };
+    // Also signs that person out on every device.
+    await setPassword(db, input.id, input.password);
+  } catch (error) {
+    console.error("[users]", error);
+    return { ok: false, error: "unknown" };
+  }
   return { ok: true };
 }
 
@@ -130,13 +132,20 @@ export async function deleteUser(input: { id: string }): Promise<UserResult> {
   const me = await requireProfile({ roles: ["owner"] });
   if (input.id === me.id) return { ok: false, error: "cannotDeleteSelf" };
 
-  const admin = createSupabaseAdminClient();
-  const { data: target } = await admin.from("profiles").select("role").eq("id", input.id).maybeSingle();
-  if (target?.role === "owner" && (await ownerCount(admin)) <= 1) return { ok: false, error: "lastOwner" };
+  const db = await getDb();
+  const target = await row<{ role: AppRole }>(db, "select role from public.profiles where id = $1", [input.id]).catch(
+    () => null,
+  );
+  if (!target) return { ok: false, error: "notFound" };
+  if (target.role === "owner" && (await ownerCount(db)) <= 1) return { ok: false, error: "lastOwner" };
 
-  // Deleting the auth user cascades to the profile, orders and subscriptions.
-  const { error } = await admin.auth.admin.deleteUser(input.id);
-  if (error) return { ok: false, error: error.status === 404 ? "notFound" : "unknown" };
+  try {
+    // Deleting the login cascades to the profile, sessions, orders and subscriptions.
+    await db.query("delete from auth.users where id = $1", [input.id]);
+  } catch (error) {
+    console.error("[users]", error);
+    return { ok: false, error: "unknown" };
+  }
 
   revalidatePath("/admin/users");
   return { ok: true };

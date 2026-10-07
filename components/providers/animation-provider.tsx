@@ -1,10 +1,21 @@
 "use client";
 
-import { LazyMotion, MotionConfig } from "motion/react";
+import { LazyMotion, MotionConfig, domAnimation } from "motion/react";
 import { useTranslations } from "next-intl";
-import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import {
+  createContext,
+  startTransition,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { toast } from "sonner";
 
+import { setAnimationDetected, setAnimationPref } from "@/app/actions/preferences";
 import {
   TIER_ORDER,
   detectTier,
@@ -46,10 +57,12 @@ export const useAnimation = () => useContext(AnimationContext);
 // Layout / shared-element animations (layoutId) need motion's domMax features;
 // they're loaded after hydration so they never delay the first paint.
 const loadDomMax = () => import("@/lib/motion-features").then((m) => m.default);
+type MotionFeatures = Parameters<typeof LazyMotion>[0]["features"];
 
-// supabase-js is only needed to save preferences; keep it out of the first load
-// (the login page doesn't otherwise need it).
-const supabase = () => import("@/lib/supabase/client").then((m) => m.getSupabaseBrowserClient());
+// Everything this provider changes on its own after the page loads (detected
+// tier, frame-rate check, the extra motion features) is a transition: an
+// urgent update here re-renders every motion element, and React would throw
+// away server HTML that is still hydrating (losing what someone already typed).
 
 function read(key: string): Stored | null {
   try {
@@ -86,6 +99,7 @@ export function AnimationProvider({
   const [renderer, setRenderer] = useState<string | null>(null);
   const [webglBroken, setWebglBroken] = useState(false);
   const [settled, setSettled] = useState(false);
+  const [features, setFeatures] = useState<MotionFeatures>(domAnimation);
   const key = `anim-tier:${userId ?? "anon"}`;
   const prefRef = useRef(pref);
   useEffect(() => {
@@ -105,22 +119,24 @@ export function AnimationProvider({
       if (stored && fresh.tier !== "reduced" && TIER_ORDER.indexOf(stored.tier) > TIER_ORDER.indexOf(tier)) {
         tier = stored.tier;
       }
-      setDetected(tier);
-      setRenderer(fresh.gpu?.renderer || null);
+      startTransition(() => {
+        setDetected(tier);
+        setRenderer(fresh.gpu?.renderer || null);
+      });
       write(key, { ...stored, tier, renderer: fresh.gpu?.renderer });
 
       // Measure the first 3 seconds after the page is interactive.
       idleHandle = idle(async () => {
         if (cancelled) return;
-        if (stored?.pinned || tier === "reduced") return setSettled(true);
+        if (stored?.pinned || tier === "reduced") return startTransition(() => setSettled(true));
         const fps = await measureFps(3000);
         if (cancelled) return;
-        setSettled(true);
+        startTransition(() => setSettled(true));
         if (prefRef.current !== "auto") return;
         const lower = downgradeFor(tier, fps);
         if (!lower) return;
         const previous = tier;
-        setDetected(lower);
+        startTransition(() => setDetected(lower));
         write(key, { tier: lower, renderer: fresh.gpu?.renderer });
         toast(t("downgraded"), {
           duration: 8000,
@@ -141,10 +157,18 @@ export function AnimationProvider({
     };
   }, [key, t]);
 
+  useEffect(() => {
+    let alive = true;
+    void loadDomMax().then((bundle) => alive && startTransition(() => setFeatures(bundle)));
+    return () => {
+      alive = false;
+    };
+  }, []);
+
   // Remember the detected tier on the profile too (informational).
   useEffect(() => {
     if (!userId || !detected || detected === initialDetected) return;
-    void supabase().then((client) => client.from("profiles").update({ animation_detected: detected }).eq("id", userId));
+    void setAnimationDetected(detected).catch(() => {});
   }, [userId, detected, initialDetected]);
 
   const setPref = useCallback(
@@ -156,7 +180,7 @@ export function AnimationProvider({
         setDetected(fresh.tier);
         write(key, { tier: fresh.tier, renderer: fresh.gpu?.renderer });
       }
-      if (userId) await (await supabase()).from("profiles").update({ animation_pref: next }).eq("id", userId);
+      if (userId) await setAnimationPref(next).catch(() => {});
     },
     [key, userId],
   );
@@ -183,7 +207,7 @@ export function AnimationProvider({
           tier === "reduced" ? { duration: 0.15, ease: "easeOut" } : { type: "spring", stiffness: 170, damping: 24 }
         }
       >
-        <LazyMotion features={loadDomMax}>{children}</LazyMotion>
+        <LazyMotion features={features}>{children}</LazyMotion>
       </MotionConfig>
     </AnimationContext>
   );

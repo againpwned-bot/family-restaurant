@@ -6,7 +6,8 @@ import { DishForm } from "@/components/admin/dishes/dish-form";
 import { PageHeader } from "@/components/layout/page-header";
 import { requireProfile } from "@/lib/auth/dal";
 import { kitchenDate } from "@/lib/dates";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { asUser } from "@/lib/server/db";
+import { editableDish } from "@/lib/server/queries";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -16,18 +17,11 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function EditDishPage({ params }: PageProps<"/admin/dishes/[id]">) {
-  await requireProfile({ roles: ["owner", "admin"] });
+  const profile = await requireProfile({ roles: ["owner", "admin"] });
   const { id } = await params;
   if (!UUID.test(id)) notFound();
   const t = await getTranslations("adminDishes.form");
-  const supabase = await createSupabaseServerClient();
-  const { data: dish } = await supabase
-    .from("dishes")
-    .select("*, dish_ingredients(name, quantity, unit, position)")
-    .eq("id", id)
-    .is("archived_at", null)
-    .order("position", { referencedTable: "dish_ingredients" })
-    .maybeSingle();
+  const dish = await asUser(profile.id, (tx) => editableDish(tx, id));
   if (!dish) notFound();
 
   return (

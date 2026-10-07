@@ -3,6 +3,10 @@
 Measured on 2026-10-07 against a production build (`next build && next start`) backed by the local Supabase
 emulator. Test machine: the reference laptop itself (NVIDIA GeForce RTX 3050 6GB Laptop GPU + AMD Radeon 680M iGPU).
 
+> **2026-10-08:** Supabase was replaced by the app's own local server (database, sign-in, live updates over
+> Server-Sent Events, Web Push). The browser no longer loads supabase-js or keeps a WebSocket open; the numbers
+> below are from the Supabase version and have not been re-measured yet (`tests/perf/profile.mts` still runs).
+
 ## Animation tiers
 
 | Tier           | When                                                                                     | What runs                                                                                                   |

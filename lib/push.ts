@@ -1,11 +1,22 @@
 // Browser helpers for Web Push. Permission is only ever requested from an
 // explicit button click (never automatically).
 
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { pushPublicKey, registerPushSubscription, removePushSubscription } from "@/app/actions/notifications";
 
 export type PushState = "unsupported" | "not-configured" | "default" | "denied" | "enabled" | "disabled";
 
-export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+// The server generates its VAPID keys on first start; ask it for the public one once.
+let vapidKey: Promise<string> | null = null;
+function serverKey(): Promise<string> {
+  vapidKey ??= pushPublicKey()
+    .then((r) => r.data ?? "")
+    .catch(() => "");
+  const pending = vapidKey;
+  void pending.then((key) => {
+    if (!key && vapidKey === pending) vapidKey = null; // try again next time
+  });
+  return pending;
+}
 
 /** Set once notifications are on (or the prompt was dismissed): the server then skips the prompt. */
 export const PUSH_PROMPT_COOKIE = "push-prompt";
@@ -32,6 +43,10 @@ function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   return out;
 }
 
+function sameBytes(a: Uint8Array, b: Uint8Array) {
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
 export async function registration(): Promise<ServiceWorkerRegistration | null> {
   if (!pushSupported()) return null;
   return (
@@ -41,18 +56,17 @@ export async function registration(): Promise<ServiceWorkerRegistration | null> 
 
 async function save(subscription: PushSubscription) {
   const json = subscription.toJSON();
-  const { error } = await getSupabaseBrowserClient().rpc("register_push_subscription", {
-    p_endpoint: subscription.endpoint,
-    p_p256dh: json.keys?.p256dh ?? "",
-    p_auth: json.keys?.auth ?? "",
-    p_user_agent: navigator.userAgent,
+  const { error } = await registerPushSubscription({
+    endpoint: subscription.endpoint,
+    p256dh: json.keys?.p256dh ?? "",
+    auth: json.keys?.auth ?? "",
+    userAgent: navigator.userAgent,
   });
-  if (error) throw error;
+  if (error) throw new Error(error.message);
 }
 
 export async function currentPushState(): Promise<PushState> {
   if (!pushSupported()) return "unsupported";
-  if (!VAPID_PUBLIC_KEY) return "not-configured";
   if (Notification.permission === "denied") return "denied";
   const reg = await registration();
   const sub = await reg?.pushManager.getSubscription();
@@ -63,18 +77,25 @@ export async function currentPushState(): Promise<PushState> {
 /** Ask for permission (call from a click handler), subscribe, store for this user. */
 export async function enablePush(): Promise<PushState> {
   if (!pushSupported()) return "unsupported";
-  if (!VAPID_PUBLIC_KEY) return "not-configured";
   const permission = await Notification.requestPermission();
   if (permission === "denied") return "denied";
   if (permission !== "granted") return "default";
   const reg = await registration();
   if (!reg) return "unsupported";
   await navigator.serviceWorker.ready;
+  const key = await serverKey();
+  if (!key) return "not-configured";
+  const existing = await reg.pushManager.getSubscription();
+  // A subscription made for another server key (e.g. after data/ was reset) can't be used.
+  const sameKey =
+    existing?.options.applicationServerKey &&
+    sameBytes(new Uint8Array(existing.options.applicationServerKey), urlBase64ToUint8Array(key));
+  if (existing && !sameKey) await existing.unsubscribe();
   const subscription =
-    (await reg.pushManager.getSubscription()) ??
+    (sameKey ? existing : null) ??
     (await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      applicationServerKey: urlBase64ToUint8Array(key),
     }));
   await save(subscription);
   hidePushPromptFromNowOn();
@@ -86,7 +107,7 @@ export async function disablePush(): Promise<void> {
   const reg = await registration();
   const sub = await reg?.pushManager.getSubscription();
   if (!sub) return;
-  await getSupabaseBrowserClient().from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+  await removePushSubscription(sub.endpoint).catch(() => {});
   await sub.unsubscribe();
 }
 
@@ -95,7 +116,7 @@ export async function disablePush(): Promise<void> {
  * make sure an existing subscription points at whoever is signed in now.
  */
 export async function claimExistingSubscription(): Promise<void> {
-  if (!pushSupported() || !VAPID_PUBLIC_KEY || Notification.permission !== "granted") return;
+  if (!pushSupported() || Notification.permission !== "granted") return;
   const reg = await navigator.serviceWorker.getRegistration("/");
   const sub = await reg?.pushManager.getSubscription();
   if (sub) await save(sub).catch(() => {});
@@ -107,7 +128,7 @@ export async function forgetThisDevice(): Promise<void> {
     if (!pushSupported()) return;
     const reg = await navigator.serviceWorker.getRegistration("/");
     const sub = await reg?.pushManager.getSubscription();
-    if (sub) await getSupabaseBrowserClient().from("push_subscriptions").delete().eq("endpoint", sub.endpoint);
+    if (sub) await removePushSubscription(sub.endpoint);
   } catch {
     // best effort
   }

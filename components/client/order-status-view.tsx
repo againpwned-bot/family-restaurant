@@ -16,8 +16,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRealtime } from "@/hooks/use-realtime";
 import { hasTimer, isOpen, newer } from "@/lib/orders";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { Order, OrderEvent } from "@/lib/supabase/database.types";
+import { fetchMyOrder } from "@/app/actions/orders";
+import { safe } from "@/lib/action-result";
+import type { Order, OrderEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /** Full-screen status of one order: big timer, progress, timeline. */
@@ -41,13 +42,10 @@ export function OrderStatusView({
   usePrefetchRing3D();
 
   const resync = useCallback(async () => {
-    const supabase = getSupabaseBrowserClient();
-    const [o, e] = await Promise.all([
-      supabase.from("orders").select("*").eq("id", initialOrder.id).maybeSingle(),
-      supabase.from("order_events").select("*").eq("order_id", initialOrder.id).order("created_at"),
-    ]);
-    if (o.data) setOrder((prev) => newer(prev, o.data!));
-    if (e.data) setEvents(e.data);
+    const { data } = await safe(fetchMyOrder(initialOrder.id));
+    if (!data) return;
+    if (data.order) setOrder((prev) => newer(prev, data.order!));
+    setEvents(data.events);
   }, [initialOrder.id]);
 
   useRealtime(

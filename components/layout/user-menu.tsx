@@ -18,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import type { AppRole } from "@/lib/supabase/database.types";
+import type { AppRole } from "@/lib/types";
 
 export type ShellUser = { displayName: string; username: string; role: AppRole };
 

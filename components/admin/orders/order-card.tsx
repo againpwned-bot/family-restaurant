@@ -11,13 +11,19 @@ import { DishPhoto } from "@/components/dish/dish-photo";
 import { OrderTimerBar } from "@/components/orders/order-timer";
 import { Button } from "@/components/ui/button";
 import { KITCHEN_TZ } from "@/lib/dates";
+import {
+  acceptOrder,
+  extendOrderTimer,
+  handOverOrder,
+  markOrderReady,
+  rejectOrder,
+  startCooking,
+} from "@/app/actions/orders";
+import { safe, type ActionResult } from "@/lib/action-result";
 import { dbErrorKey } from "@/lib/errors";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { Database, Order } from "@/lib/supabase/database.types";
+import type { Order } from "@/lib/types";
 import { useSkipEntrance } from "@/hooks/use-entrance";
 import { cn } from "@/lib/utils";
-
-type Rpc = keyof Database["public"]["Functions"];
 
 // Only opened on demand: keep the dialogs (and Radix Dialog) out of the board's first load.
 const AcceptDialog = dynamic(() => import("@/components/admin/orders/order-dialogs").then((m) => m.AcceptDialog));
@@ -50,9 +56,9 @@ export function OrderCard({
   const time = (iso: string) =>
     format.dateTime(new Date(iso), { hour: "2-digit", minute: "2-digit", timeZone: KITCHEN_TZ });
 
-  async function run(action: string, fn: Rpc, args: Record<string, unknown>, success: string) {
+  async function run(action: string, call: Promise<ActionResult<Order>>, success: string) {
     setBusy(action);
-    const { data, error } = await getSupabaseBrowserClient().rpc(fn as "accept_order", args as never);
+    const { data, error } = await safe(call);
     setBusy(null);
     if (error) {
       const key = dbErrorKey(error);
@@ -60,7 +66,7 @@ export function OrderCard({
       if (key === "invalid_transition" || key === "order_not_found") onResync();
       return false;
     }
-    if (data) onUpdated(data as Order);
+    if (data) onUpdated(data);
     toast.success(success);
     return true;
   }
@@ -153,7 +159,7 @@ export function OrderCard({
               className="flex-1"
               disabled={!!busy}
               onClick={() =>
-                run("cook", "start_cooking", { p_order_id: id }, t("adminOrders.toast.cooking", { number: n }))
+                run("cook", startCooking(id), t("adminOrders.toast.cooking", { number: n }))
               }
             >
               {busy === "cook" ? (
@@ -178,8 +184,7 @@ export function OrderCard({
                   onClick={() =>
                     run(
                       `ext${minutes}`,
-                      "extend_order_timer",
-                      { p_order_id: id, p_minutes: minutes },
+                      extendOrderTimer(id, minutes),
                       t("adminOrders.toast.extended", { minutes }),
                     )
                   }
@@ -195,8 +200,7 @@ export function OrderCard({
                 onClick={() =>
                   run(
                     "ready",
-                    "mark_order_ready",
-                    { p_order_id: id },
+                    markOrderReady(id),
                     t("adminOrders.toast.ready", { client: clientName }),
                   )
                 }
@@ -217,7 +221,7 @@ export function OrderCard({
               className="w-full"
               disabled={!!busy}
               onClick={() =>
-                run("hand", "hand_over_order", { p_order_id: id }, t("adminOrders.toast.handedOver", { number: n }))
+                run("hand", handOverOrder(id), t("adminOrders.toast.handedOver", { number: n }))
               }
             >
               {busy === "hand" ? (
@@ -256,8 +260,7 @@ export function OrderCard({
             if (
               await run(
                 "accept",
-                "accept_order",
-                { p_order_id: id, p_minutes: minutes },
+                acceptOrder(id, minutes),
                 t("adminOrders.toast.accepted", { number: n }),
               )
             )
@@ -276,8 +279,7 @@ export function OrderCard({
             if (
               await run(
                 "reject",
-                "reject_order",
-                { p_order_id: id, p_reason: reason || null },
+                rejectOrder(id, reason || null),
                 t("adminOrders.toast.rejected", { number: n }),
               )
             )

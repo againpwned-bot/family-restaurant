@@ -6,25 +6,20 @@ import { DishHero } from "@/components/client/dish-hero";
 import type { MenuDish } from "@/components/client/menu-types";
 import { OrderForm } from "@/components/client/order-form";
 import { Badge } from "@/components/ui/badge";
+import { getCurrentProfile } from "@/lib/auth/dal";
 import { kitchenDate } from "@/lib/dates";
+import { asUser } from "@/lib/server/db";
+import { menuDish } from "@/lib/server/queries";
 import { formatQuantity, normalizeUnit } from "@/lib/shopping";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
-import { MENU_SELECT } from "@/components/client/menu-types";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** A dish as the signed-in user may see it (RLS), or null. */
 export async function fetchDish(id: string): Promise<MenuDish | null> {
   if (!UUID.test(id)) return null;
-  const supabase = await createSupabaseServerClient();
-  const { data } = await supabase
-    .from("dishes")
-    .select(MENU_SELECT)
-    .eq("id", id)
-    .is("archived_at", null)
-    .order("position", { referencedTable: "dish_ingredients" })
-    .maybeSingle();
-  return (data as MenuDish | null) ?? null;
+  const profile = await getCurrentProfile();
+  if (!profile) return null;
+  return asUser(profile.id, (tx) => menuDish(tx, id));
 }
 
 /** Dish page body, shared by the full page and the overlay over the menu. */

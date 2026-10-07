@@ -4,8 +4,17 @@
 //
 //   npm run seed:dishes            add the examples (the first four go on today's menu)
 //   npm run seed:dishes -- --none-today   add them, but leave today's menu empty
+//
+// Stop the app first: only one process may open the database.
 
-import { adminClient, fail } from "./lib/supabase-admin";
+import path from "node:path";
+
+import { dataDir, lockDataDir, openDatabase, row, rows } from "../lib/server/database";
+
+function fail(message: string): never {
+  console.error(`✗ ${message}`);
+  process.exit(1);
+}
 
 type SeedIngredient = [name: string, quantity: number | null, unit: string];
 type SeedDish = { name: string; description: string; cookMinutes: number; ingredients: SeedIngredient[] };
@@ -97,14 +106,15 @@ const DISHES: SeedDish[] = [
 
 async function main() {
   const noneToday = process.argv.includes("--none-today");
-  const supabase = adminClient();
+  const dir = dataDir();
+  lockDataDir(dir);
+  const db = await openDatabase(path.join(dir, "db"), (m) => console.log(`· ${m}`));
 
-  const { data: today, error: todayError } = await supabase.rpc("today_local");
-  if (todayError || !today) fail(`Could not read today's date from the database: ${todayError?.message}`);
-
-  const { data: owner } = await supabase.from("profiles").select("id").eq("role", "owner").limit(1).maybeSingle();
-  const { data: existing } = await supabase.from("dishes").select("name");
-  const taken = new Set((existing ?? []).map((d) => d.name.toLowerCase()));
+  const today = (await row<{ day: string }>(db, "select public.today_local() as day"))!.day;
+  const owner = await row<{ id: string }>(db, "select id from public.profiles where role = 'owner' limit 1");
+  const taken = new Set(
+    (await rows<{ name: string }>(db, "select name from public.dishes")).map((d) => d.name.toLowerCase()),
+  );
 
   let added = 0;
   for (const [index, dish] of DISHES.entries()) {
@@ -112,33 +122,25 @@ async function main() {
       console.log(`· skipped  ${dish.name} (already exists)`);
       continue;
     }
-    const { data: row, error } = await supabase
-      .from("dishes")
-      .insert({
-        name: dish.name,
-        description: dish.description,
-        cook_minutes: dish.cookMinutes,
-        available_on: !noneToday && index < 4 ? today : null,
-        created_by: owner?.id ?? null,
-      })
-      .select("id")
-      .single();
-    if (error || !row) fail(`Could not add ${dish.name}: ${error?.message}`);
-
-    const { error: ingredientsError } = await supabase.from("dish_ingredients").insert(
-      dish.ingredients.map(([name, quantity, unit], position) => ({
-        dish_id: row.id,
-        name,
-        quantity,
-        unit,
-        position,
-      })),
-    );
-    if (ingredientsError) fail(`Could not add the ingredients of ${dish.name}: ${ingredientsError.message}`);
+    await db.transaction(async (tx) => {
+      const inserted = await row<{ id: string }>(
+        tx,
+        `insert into public.dishes (name, description, cook_minutes, available_on, created_by)
+         values ($1, $2, $3, $4, $5) returning id`,
+        [dish.name, dish.description, dish.cookMinutes, !noneToday && index < 4 ? today : null, owner?.id ?? null],
+      );
+      for (const [position, [name, quantity, unit]] of dish.ingredients.entries()) {
+        await tx.query(
+          "insert into public.dish_ingredients (dish_id, name, quantity, unit, position) values ($1, $2, $3, $4, $5)",
+          [inserted!.id, name, quantity, unit, position],
+        );
+      }
+    });
     added++;
     console.log(`✓ added    ${dish.name}`);
   }
 
+  await db.close();
   console.log(`\nDone: ${added} dish(es) added.`);
 }
 

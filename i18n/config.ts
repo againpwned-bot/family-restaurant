@@ -1,4 +1,4 @@
-import type { Locale } from "@/lib/supabase/database.types";
+import type { Locale } from "@/lib/types";
 
 export const LOCALES: readonly Locale[] = ["ro", "en"];
 export const DEFAULT_LOCALE: Locale = "ro";

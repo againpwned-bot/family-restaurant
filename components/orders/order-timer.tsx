@@ -4,7 +4,7 @@ import { useTranslations } from "next-intl";
 
 import { useNow } from "@/hooks/use-now";
 import { formatDuration } from "@/lib/dates";
-import type { Order } from "@/lib/supabase/database.types";
+import type { Order } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function timerState(order: Pick<Order, "eta_at" | "timer_minutes" | "decided_at">, now: number) {

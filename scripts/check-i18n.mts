@@ -41,12 +41,6 @@ for (const [key, value] of roKeys) {
   }
 }
 
-// The push Edge Function carries its own copy of the notification texts.
-const { pushMessages, TARGET } = await import("./sync-push-messages.mjs");
-if (!fs.existsSync(TARGET) || fs.readFileSync(TARGET, "utf8") !== pushMessages()) {
-  problems.push(`${TARGET} is out of date: run npm run sync:push-messages`);
-}
-
 if (problems.length) {
   console.error(problems.join("\n"));
   process.exit(1);

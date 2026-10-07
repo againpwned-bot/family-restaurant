@@ -147,6 +147,7 @@
       "invalid_ingredients": "Lista de ingrediente nu e validă.",
       "too_many_ingredients": "Poți avea cel mult 60 de ingrediente.",
       "invalid_item": "Element invalid.",
+      "invalid_photo": "Fotografia nu a putut fi salvată. Încearcă altă poză (JPEG, PNG sau WebP).",
       "network": "Nu există conexiune. Verifică internetul și încearcă din nou.",
       "unknown": "Ceva n-a mers. Încearcă din nou."
     }

@@ -1,7 +1,7 @@
 // Frame-time profiling of the main transitions, per animation tier, with CPU
 // throttling (Chrome DevTools Protocol Emulation.setCPUThrottlingRate).
 //
-//   npm run build && npm run start (or the local stack)   then:
+//   npm run build && npm run start   then:
 //   PERF_BASE_URL=http://localhost:3100 npx tsx tests/perf/profile.mts
 //
 // Desktop-full runs on the real GPU when one is available (NVIDIA PRIME offload
@@ -13,7 +13,17 @@ import path from "node:path";
 
 import { chromium, type Browser, type Page } from "playwright-core";
 
-import { account, api } from "../e2e/helpers.mjs";
+import {
+  account,
+  browser as e2eBrowser,
+  cancelOrder,
+  context,
+  login,
+  onBoard,
+  placeOrder,
+  sampleDishes,
+  setOnMenu,
+} from "../e2e/helpers.mjs";
 
 const BASE = process.env.PERF_BASE_URL ?? "http://localhost:3000";
 const OUT = path.join(process.cwd(), "tests", "perf", "results.json");
@@ -191,20 +201,17 @@ async function scenarios(page: Page, profile: string, kind: "desktop" | "phone",
     1000,
   );
   // 6. Live order: status flip + banner (the kitchen advances the order)
-  const clientApi = await api(account("client"));
-  const adminApi = await api(account("admin"));
-  const { data: order } = await clientApi.rpc("place_order", { p_dish_id: dishId, p_quantity: 1 });
-  await page.goto(`${BASE}/orders/${order!.id}`);
+  const order = await placeOrder(page, dishId);
   await page.waitForTimeout(1500);
   await measure(
     page,
     profile,
     "order: accepted (flip+banner)",
-    () => adminApi.rpc("accept_order", { p_order_id: order!.id, p_minutes: 20 }),
+    () => onBoard(kitchen, order.number, { do: "accept", minutes: 20 }),
     1500,
   );
   await measure(page, profile, "order: timer running (idle)", async () => {}, 2000);
-  await adminApi.rpc("reject_order", { p_order_id: order!.id, p_reason: null });
+  await cancelOrder(page, order.id);
   // 7. Dish page (desktop-full: 3D plate)
   await page.goto(`${BASE}/dish/${dishId}`);
   await page.waitForTimeout(2500);
@@ -215,16 +222,11 @@ async function scenarios(page: Page, profile: string, kind: "desktop" | "phone",
   await measure(page, profile, "home idle (WebGL bg if full)", async () => {}, 2000);
 }
 
-const adminApi = await api(account("admin"));
-const { data: dish } = await adminApi
-  .from("dishes")
-  .select("id, name")
-  .eq("available_on", new Date().toISOString().slice(0, 10))
-  .limit(1)
-  .maybeSingle();
-const { data: anyDish } = dish ? { data: dish } : await adminApi.from("dishes").select("id, name").limit(1).single();
-if (!dish) await adminApi.rpc("set_dish_available_today", { p_dish_id: anyDish!.id, p_available: true });
-const target = dish ?? anyDish!;
+// The kitchen side runs in its own (unthrottled) browser.
+const kitchenBrowser = await e2eBrowser();
+const kitchen = await login(await context(kitchenBrowser, "desktop"), account("admin"));
+const target = (await sampleDishes(kitchen)).sarmale;
+await setOnMenu(kitchen, target.name, true);
 
 const plans: { name: string; gpu: boolean; kind: "desktop" | "phone"; cpu: number }[] = [
   { name: "desktop GPU, CPU 2x", gpu: true, kind: "desktop", cpu: 2 },
@@ -239,6 +241,7 @@ for (const plan of plans) {
   await ctx.close();
   await b.close();
 }
+await kitchenBrowser.close();
 fs.writeFileSync(OUT, JSON.stringify(results, null, 2));
 console.log(`\nwrote ${path.relative(process.cwd(), OUT)}`);
 process.exit(0);

@@ -13,7 +13,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { useNow } from "@/hooks/use-now";
 import { kitchenHHMM, kitchenTimeToday } from "@/lib/dates";
 import { dbErrorKey } from "@/lib/errors";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { placeOrder } from "@/app/actions/orders";
+import { safe } from "@/lib/action-result";
 import { cn } from "@/lib/utils";
 
 const MAX_PORTIONS = 10;
@@ -58,12 +59,14 @@ export function OrderForm({
     const instant = mode === "time" ? requestedInstant(time, Date.now())?.at : null;
     if (mode === "time" && !instant) return void toast.error(t("orderForm.timeInvalid"));
     setSending(true);
-    const { data, error } = await getSupabaseBrowserClient().rpc("place_order", {
-      p_dish_id: dishId,
-      p_quantity: quantity,
-      p_comment: comment.trim() || null,
-      p_requested_for: instant ? instant.toISOString() : null,
-    });
+    const { data, error } = await safe(
+      placeOrder({
+        dishId,
+        quantity,
+        comment: comment.trim() || null,
+        requestedFor: instant ? instant.toISOString() : null,
+      }),
+    );
     if (error || !data) {
       setSending(false);
       toast.error(t(`errors.db.${dbErrorKey(error)}`));

@@ -3,5 +3,5 @@ node_modules
 components/ui
 design-system
 .claude
-supabase/migrations
+db/migrations
 package-lock.json

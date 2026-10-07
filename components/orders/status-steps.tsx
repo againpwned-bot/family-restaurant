@@ -3,7 +3,7 @@
 import { Check } from "lucide-react";
 import { useTranslations } from "next-intl";
 
-import type { OrderStatus } from "@/lib/supabase/database.types";
+import type { OrderStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const STEPS = ["received", "accepted", "cooking", "ready"] as const;

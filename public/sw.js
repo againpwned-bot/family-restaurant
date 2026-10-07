@@ -1,6 +1,6 @@
 /* Meniul de acasă service worker: Web Push only (no offline caching, so the
    app never shows stale menus or orders). Notification texts arrive already
-   rendered (in the recipient's language) from the send-push Edge Function. */
+   rendered (in the recipient's language) by the app server (lib/server/push.ts). */
 
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));

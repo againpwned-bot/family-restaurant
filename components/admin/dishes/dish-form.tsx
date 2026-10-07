@@ -8,6 +8,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useEffect, useId, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { deleteDish, saveDish, type DishInput } from "@/app/actions/dishes";
 import { DishPhoto } from "@/components/dish/dish-photo";
 import {
   AlertDialog,
@@ -25,9 +26,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { safe } from "@/lib/action-result";
 import { dbErrorKey } from "@/lib/errors";
 import { PhotoError, formatBytes, photoExtension, preparePhoto, type PreparedPhoto } from "@/lib/images";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 export type DishFormValue = {
@@ -160,59 +161,36 @@ export function DishForm({ initial }: { initial: DishFormValue }) {
     }
 
     setSaving(true);
-    const supabase = getSupabaseBrowserClient();
-    let uploadedPath: string | null = null;
-    let photoFields = {
-      path: null as string | null,
-      width: null as number | null,
-      height: null as number | null,
-      blur: null as string | null,
-    };
-
-    if (photo?.kind === "existing") {
-      photoFields = { path: photo.path, width: photo.width, height: photo.height, blur: photo.blur };
-    } else if (photo?.kind === "new") {
-      const path = `dishes/${initial.id ?? "new"}/${newKey()}.${photoExtension(photo.prepared.type)}`;
-      const { error } = await supabase.storage.from("dish-photos").upload(path, photo.prepared.blob, {
-        contentType: photo.prepared.type,
-        cacheControl: "31536000",
-      });
-      if (error) {
-        setSaving(false);
-        toast.error(t("errors.uploadFailed"));
-        return;
-      }
-      uploadedPath = path;
-      photoFields = { path, width: photo.prepared.width, height: photo.prepared.height, blur: photo.prepared.blur };
-    }
-
     const ingredients = rows
       .filter((r) => r.name.trim())
       .map((r) => ({ name: r.name.trim(), quantity: parseQty(r.quantity), unit: r.unit.trim() }));
+    const input: DishInput = {
+      id: initial.id,
+      name: name.trim(),
+      description: description.trim(),
+      cookMinutes: Number(minutes),
+      availableToday,
+      photo:
+        photo?.kind === "existing"
+          ? { path: photo.path, width: photo.width, height: photo.height, blur: photo.blur }
+          : null,
+      upload:
+        photo?.kind === "new"
+          ? { width: photo.prepared.width, height: photo.prepared.height, blur: photo.prepared.blur }
+          : null,
+      ingredients,
+    };
+    const form = new FormData();
+    form.set("dish", JSON.stringify(input));
+    if (photo?.kind === "new") {
+      form.set("photo", photo.prepared.blob, `photo.${photoExtension(photo.prepared.type)}`);
+    }
 
-    const { data, error } = await supabase.rpc("save_dish", {
-      p_id: initial.id,
-      p_name: name.trim(),
-      p_description: description.trim(),
-      p_cook_minutes: Number(minutes),
-      p_available_today: availableToday,
-      p_photo_path: photoFields.path,
-      p_photo_width: photoFields.width,
-      p_photo_height: photoFields.height,
-      p_photo_blur: photoFields.blur,
-      p_ingredients: ingredients,
-    });
-
-    if (error || !data) {
-      if (uploadedPath) await supabase.storage.from("dish-photos").remove([uploadedPath]);
+    const { error } = await safe(saveDish(form));
+    if (error) {
       setSaving(false);
       toast.error(tAll(`errors.db.${dbErrorKey(error)}`));
       return;
-    }
-
-    // The old photo is no longer referenced: remove it (best effort).
-    if (initial.photo_path && initial.photo_path !== photoFields.path) {
-      await supabase.storage.from("dish-photos").remove([initial.photo_path]);
     }
 
     toast.success(t("saved"));
@@ -223,17 +201,13 @@ export function DishForm({ initial }: { initial: DishFormValue }) {
   async function remove() {
     if (!initial.id) return;
     setDeleting(true);
-    const supabase = getSupabaseBrowserClient();
-    const { data, error } = await supabase.rpc("delete_dish", { p_id: initial.id });
+    const { data, error } = await safe(deleteDish(initial.id));
     if (error) {
       setDeleting(false);
       toast.error(tAll(`errors.db.${dbErrorKey(error)}`));
       return;
     }
-    const result = data as { mode: "archived" | "deleted"; photo_path: string | null };
-    if (result.mode === "deleted" && result.photo_path)
-      await supabase.storage.from("dish-photos").remove([result.photo_path]);
-    toast.success(result.mode === "archived" ? t("archived") : t("deleted"));
+    toast.success(data.mode === "archived" ? t("archived") : t("deleted"));
     router.push("/admin/dishes");
     router.refresh();
   }

@@ -28,8 +28,54 @@ notifications (explicit opt-in, test notification) and change password.
 - `motion` (`motion/react`, `LazyMotion` + `m.*`); three.js / react-three-fiber / drei only on the
   desktop-full tier via `next/dynamic` (`ssr: false`)
 - `next-intl` (Romanian default, cookie + profile based, no locale in the URL)
-- Supabase: Auth (username + password), Postgres + RLS, Storage, Realtime, an Edge Function for Web Push
+- Everything runs on this computer: Postgres compiled to WebAssembly ([PGlite](https://pglite.dev)) storing its
+  files in `data/`, username + password sign-in with scrypt-hashed passwords and httpOnly session cookies, live
+  updates over Server-Sent Events, dish photos on disk, Web Push sent straight from the Next.js server.
+  No database server, Docker or cloud account to set up.
 - Design system generated with `uipro init --ai claude` (`design-system/meniul-de-acasa/`)
+
+## Run it
+
+```bash
+npm install
+cp scripts/users.example.json scripts/users.local.json   # then put the family's accounts in it
+npm run dev                                               # http://localhost:3000/login
+```
+
+On the first start the app creates `data/` (database, session key, push keys, photos) and the accounts from
+`scripts/users.local.json` (git-ignored; the `"role:username:password"` form also works). After that the owner
+adds, renames and removes people on the Users page. Passwords are never printed or logged.
+
+For everyday use, the production build is faster:
+
+```bash
+npm run build && npm start      # http://localhost:3000
+```
+
+Optional example dishes (six Romanian dishes with ingredients, no photos): stop the app, `npm run seed:dishes`,
+start it again. Only one process can open the database at a time; the scripts tell you if the app is running.
+
+### Phones on the home Wi-Fi
+
+`npm start` also listens on the network address it prints (e.g. `http://192.168.1.20:3000`), so the family can
+use the app from their phones while this computer is on (`npm run dev` only serves its development files to this
+computer, so use the production build for phones). Everything works there except Web Push:
+browsers only allow it on `https://` or on `localhost`, so phones get the in-app banner and sound while the app
+is open. Push notifications work in the browser of this computer (`http://localhost:3000`), or anywhere you put
+the app behind HTTPS.
+
+### Settings (optional, in `.env.local`)
+
+| Variable         | Default                         | What                                                      |
+| ---------------- | ------------------------------- | --------------------------------------------------------- |
+| `MENIU_DATA_DIR` | `./data`                        | where the database, keys and photos are kept              |
+| `VAPID_SUBJECT`  | `mailto:meniu-de-acasa@example.com` | contact address sent to the browsers' push services   |
+
+### Backups
+
+Everything that belongs to you is in `data/` (and `scripts/users.local.json`). Stop the app and copy the folder;
+to restore, put it back. Deleting `data/` starts over from an empty database (the accounts are created again
+from `users.local.json` on the next start).
 
 ## Roles and security
 
@@ -39,75 +85,27 @@ notifications (explicit opt-in, test notification) and change password.
 | `admin`  | admin panel only                                                     |
 | `client` | today's menu, ordering, own orders                                   |
 
-People log in with a **username**; internally it becomes `username@meniu.local` (lower-cased, never verified).
-Layers: `proxy.ts` redirects by role → every layout re-checks the role from `profiles` → Postgres RLS and
-`SECURITY DEFINER` functions are the final word (orders change status only through those functions). There is
-no sign-up page, and an account without a `profiles` row has no access even if sign-up were left on.
-
-## Environment variables
-
-Copy `.env.example` to `.env.local` (git-ignored) and set them in Vercel:
-
-| Variable                               | Where                                                        | Browser? |
-| -------------------------------------- | ------------------------------------------------------------ | -------- |
-| `NEXT_PUBLIC_SUPABASE_URL`             | Supabase → Project Settings → Data API → Project URL         | yes      |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | Project Settings → API Keys → Publishable key (or `anon`)    | yes      |
-| `SUPABASE_SECRET_KEY`                  | Project Settings → API Keys → Secret key (or `service_role`) | **no**   |
-| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`         | printed by `npm run push:setup`                              | yes      |
-
-Edge Function secrets (set with `npx supabase secrets set`, see below): `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`,
-`VAPID_SUBJECT`, `PUSH_WEBHOOK_SECRET`.
-
-## Try it locally without Supabase
-
-```bash
-npm install
-npm run dev:local     # local Supabase emulator + Next.js on http://localhost:3000
-```
-
-The accounts from `scripts/users.local.json` are created on the first run (see `dev/local-supabase/README.md`).
-Optional example dishes: `NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321 SUPABASE_SECRET_KEY=sb_secret_local_emulator npm run seed:dishes`.
-
-## Set up the real Supabase project
-
-1. Create a project (Frankfurt is a good region for Romania).
-2. **Disable sign-up**: Authentication → Sign In / Providers → turn off "Allow new users to sign up".
-3. `cp .env.example .env.local` and fill in the first three variables.
-4. **Database**: `npx supabase login`, `npx supabase link --project-ref <ref>`, then `npm run db:push`
-   (or paste `supabase/migrations/*.sql` into the SQL editor, in order).
-5. **Accounts**: put the family in `scripts/users.local.json` (git-ignored; format in `scripts/users.example.json`,
-   the `"role:username:password"` form also works), then `npm run seed:users`
-   (`-- --reset-passwords` to re-apply the passwords from the file). Passwords are never printed.
-6. Optional: `npm run seed:dishes` (six Romanian dishes with ingredients, no photos).
-7. **Web Push**: `npm run push:setup -- <project-ref>` prints the VAPID keys and a webhook secret, and the exact
-   commands: `npx supabase secrets set …`, `npx supabase functions deploy send-push --no-verify-jwt`, and two
-   `vault.create_secret(…)` calls for the SQL editor. Put `NEXT_PUBLIC_VAPID_PUBLIC_KEY` in `.env.local` / Vercel.
-   Until this is done, notifications still appear in the app (banner + sound) while it's open.
-
-## Run
-
-```bash
-npm run dev          # http://localhost:3000 (uses .env.local)
-npm run build && npm run start
-```
+- People sign in with a **username** (case-insensitive) and a password. There is no sign-up page.
+- Passwords are hashed with scrypt; wrong passwords are rate-limited per username and address.
+- The session cookie is httpOnly, `SameSite=Lax`, signed with a key generated into `data/secrets.json`, and
+  `Secure` when the app is reached over HTTPS. Sessions live in the database, so signing out, a password reset or
+  a role change ends them at once (including open live-update streams).
+- Layers: `proxy.ts` checks the signed cookie and redirects by role → every layout re-checks the session and
+  role in the database → every query runs as the signed-in user, so Postgres row level security and the
+  `SECURITY DEFINER` functions are the final word (orders change status only through those functions).
+  Live updates are re-read as each listener, so nobody receives a row they couldn't read.
 
 ## Checks
 
 ```bash
-npm run check        # typecheck + lint + i18n (ro/en keys, ș ț, push texts in sync) + unit + database tests
-npm run test:db      # all migrations in an in-memory Postgres (PGlite): RLS, order flow, admin helpers, push trigger (75 checks)
-npm run test:e2e     # with `npm run dev:local` running: admin, client and push end-to-end checks (Playwright)
+npm run check        # typecheck + lint + i18n (ro/en keys, ș ț) + unit tests (incl. push delivery) + database tests
+npm run test:db      # all migrations in an in-memory database: RLS, order flow, admin helpers, push + change feed (80 checks)
+npm run test:e2e     # with the app running and the example dishes seeded: admin, client and push end-to-end checks
 npx tsx tests/perf/profile.mts   # frame timing per tier with CPU throttling (see docs/PERFORMANCE.md)
 ```
 
-The e2e checks need Playwright's Chromium once: `npx playwright-core install chromium`.
-
-## Deploy (Vercel)
-
-1. Push the repository to GitHub and import it in Vercel (framework: Next.js, Node.js 22).
-2. Add the four environment variables (mark `SUPABASE_SECRET_KEY` as sensitive).
-3. Supabase → Authentication → URL Configuration: Site URL = your Vercel domain.
-4. Deploy. Migrations, seeding and the Edge Function are deployed from your machine with the Supabase CLI.
+The e2e checks drive both sides of every flow (the family member and the kitchen) through real browser sessions
+and need Playwright's Chromium once: `npx playwright-core install chromium`.
 
 ## Performance
 
@@ -117,16 +115,17 @@ under CPU throttling, the GPU budget, and what was simplified.
 ## Project layout
 
 ```
-app/                    routes: /login, (client)/… (+ @modal dish overlay), admin/…, api/push
+app/                    routes: /login, (client)/… (+ @modal dish overlay), admin/…, api/realtime, api/push, uploads
+app/actions/            server actions (orders, dishes, shopping, notifications, preferences, account)
 components/ui/          shadcn/ui primitives + works-wheel.tsx
 components/{admin,client,orders,notifications,settings,layout,motion,three,providers}/
-lib/                    supabase clients + types, auth, dates, shopping maths, images, push, animation tiers
-hooks/                  realtime subscription, shared clock, entrance helper
+lib/server/             database, sessions, passwords, queries, live updates, push delivery, photo storage
+lib/                    auth, types, dates, shopping maths, images, push (browser), animation tiers
+hooks/                  live updates, shared clock, entrance helper
 messages/               ro.json (default), en.json
-supabase/migrations/    schema, RLS, order functions, storage/realtime, admin functions, push trigger
-supabase/functions/     send-push Edge Function (+ local adapter)
-supabase/tests/         PGlite database tests
-dev/local-supabase/     local emulator (Auth, REST, Storage, Realtime, Functions)
+db/migrations/          schema, RLS, order functions, change feed, admin functions, push trigger
+db/tests/               database tests
 tests/                  unit tests, e2e checks, performance profiling
-scripts/                seed users/dishes, push setup, i18n check, icons
+scripts/                seed users/dishes, i18n check, icons
+data/                   this computer's database, keys and photos (git-ignored, created on first start)
 ```

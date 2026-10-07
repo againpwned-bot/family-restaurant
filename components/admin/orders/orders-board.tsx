@@ -4,15 +4,15 @@ import { BellOff, BellRing, Wifi, WifiOff } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
+import { fetchBoard } from "@/app/actions/orders";
 import { OrderCard } from "@/components/admin/orders/order-card";
 import { PushPrompt } from "@/components/notifications/push-prompt";
 import { Button } from "@/components/ui/button";
 import { useRealtime } from "@/hooks/use-realtime";
-import { kitchenDayStart } from "@/lib/dates";
+import { safe } from "@/lib/action-result";
 import { newer } from "@/lib/orders";
 import { isMuted, isSoundBlocked, setMuted } from "@/lib/sound";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { AppNotification, Order, OrderStatus } from "@/lib/supabase/database.types";
+import type { AppNotification, Order, OrderStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type Column = "received" | "accepted" | "cooking" | "ready" | "done";
@@ -29,20 +29,6 @@ export type DishInfo = Record<string, { cook_minutes: number; photo_blur: string
 
 function columnOf(status: OrderStatus): Column {
   return status === "received" || status === "accepted" || status === "cooking" || status === "ready" ? status : "done";
-}
-
-async function fetchBoard() {
-  const supabase = getSupabaseBrowserClient();
-  const since = kitchenDayStart().toISOString();
-  const [orders, people] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("*")
-      .or(`status.in.(received,accepted,cooking,ready),created_at.gte.${since}`)
-      .order("created_at"),
-    supabase.from("profiles").select("id, display_name"),
-  ]);
-  return { orders: orders.data, people: people.data };
 }
 
 export function OrdersBoard({
@@ -67,9 +53,10 @@ export function OrdersBoard({
   }, []);
 
   const resync = useCallback(async () => {
-    const { orders: rows, people: names } = await fetchBoard();
-    if (rows) setOrders(new Map(rows.map((o) => [o.id, o])));
-    if (names) setPeople(Object.fromEntries(names.map((p) => [p.id, p.display_name])));
+    const { data } = await safe(fetchBoard());
+    if (!data) return;
+    setOrders(new Map(data.orders.map((o) => [o.id, o])));
+    setPeople(data.people);
   }, []);
 
   const status = useRealtime(

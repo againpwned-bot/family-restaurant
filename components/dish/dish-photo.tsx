@@ -1,7 +1,7 @@
 import Image from "next/image";
 
 import { LogoMark } from "@/components/brand/logo";
-import { dishPhotoUrl } from "@/lib/env";
+import { dishPhotoUrl } from "@/lib/photos";
 import { cn } from "@/lib/utils";
 
 // Warm placeholder tints, picked from the dish name so each dish keeps its colour.

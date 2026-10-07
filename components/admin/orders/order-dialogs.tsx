@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TIMER_PRESETS } from "@/lib/orders";
-import type { Order } from "@/lib/supabase/database.types";
+import type { Order } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type DialogBase = {

@@ -6,13 +6,13 @@ import { useRouter } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { markNotificationRead } from "@/app/actions/notifications";
 import { Button } from "@/components/ui/button";
 import { useRealtime } from "@/hooks/use-realtime";
 import { chimeFor, notificationHref, renderNotification } from "@/lib/notifications";
 import { KITCHEN_TZ } from "@/lib/dates";
 import { playChime } from "@/lib/sound";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { AppNotification, NotificationType } from "@/lib/supabase/database.types";
+import type { AppNotification, NotificationType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const AUTO_HIDE_MS = 10_000;
@@ -46,7 +46,7 @@ export function NotificationCenter({ userId }: { userId: string }) {
     if (timer) clearTimeout(timer);
     timers.current.delete(id);
     if (markRead) {
-      void getSupabaseBrowserClient().from("notifications").update({ read_at: new Date().toISOString() }).eq("id", id);
+      void markNotificationRead(id).catch(() => {});
     }
   }, []);
 

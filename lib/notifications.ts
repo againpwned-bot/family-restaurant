@@ -1,4 +1,4 @@
-import type { AppNotification, NotificationType } from "@/lib/supabase/database.types";
+import type { AppNotification, NotificationType } from "@/lib/types";
 
 // What the order triggers put in notifications.payload (see migrations).
 export type NotificationPayload = {
@@ -32,7 +32,7 @@ export function chimeFor(type: NotificationType): "order" | "ready" | "alert" {
 /**
  * Title + body for a notification. `t` is a translator scoped to
  * "notifications"; `time` formats an ISO instant as HH:MM in the kitchen zone.
- * Messages only use plain {placeholders}, so the push Edge Function can render
+ * Messages only use plain {placeholders}, so the push sender (lib/server/push.ts) can render
  * the same strings without an ICU library.
  */
 export function renderNotification(

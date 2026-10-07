@@ -8,17 +8,17 @@ import { useTranslations } from "next-intl";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { DishCard } from "@/components/client/dish-card";
-import { MENU_SELECT, type MenuDish } from "@/components/client/menu-types";
+import type { MenuDish } from "@/components/client/menu-types";
 import { placeholderDataUrl } from "@/components/dish/dish-photo";
 import { useAnimation } from "@/components/providers/animation-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
 import { useRealtime } from "@/hooks/use-realtime";
-import { kitchenDate } from "@/lib/dates";
-import { dishPhotoUrl } from "@/lib/env";
+import { dishPhotoUrl } from "@/lib/photos";
 import { matches } from "@/lib/search";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import { fetchTodayMenu } from "@/app/actions/dishes";
+import { safe } from "@/lib/action-result";
 import { cn } from "@/lib/utils";
 
 type View = "wheel" | "list";
@@ -69,14 +69,8 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
   const [front, setFront] = useState(0);
 
   const refetch = useCallback(async () => {
-    const { data } = await getSupabaseBrowserClient()
-      .from("dishes")
-      .select(MENU_SELECT)
-      .eq("available_on", kitchenDate())
-      .is("archived_at", null)
-      .order("name")
-      .order("position", { referencedTable: "dish_ingredients" });
-    if (data) setDishes(data as MenuDish[]);
+    const { data } = await safe(fetchTodayMenu());
+    if (data) setDishes(data);
   }, []);
 
   // A dish taken off the menu is no longer visible to us (RLS), so its change

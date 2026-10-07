@@ -17,6 +17,7 @@ export const DB_ERROR_KEYS = [
   "invalid_ingredients",
   "too_many_ingredients",
   "invalid_item",
+  "invalid_photo",
   "network",
   "unknown",
 ] as const;

@@ -12,7 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 
 import { CanvasShell } from "@/components/three/canvas-shell";
-import { dishPhotoUrl } from "@/lib/env";
+import { dishPhotoUrl } from "@/lib/photos";
 
 function usePhotoTexture(photoPath: string) {
   const [texture, setTexture] = useState<THREE.Texture | null>(null);

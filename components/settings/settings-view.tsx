@@ -7,7 +7,7 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PushToggle } from "@/components/notifications/push-toggle";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { AnimationSetting, LanguageSetting, ThemeSetting } from "@/components/settings/preference-switchers";
-import type { Profile } from "@/lib/supabase/database.types";
+import type { Profile } from "@/lib/types";
 import { THEME_COOKIE, resolveTheme } from "@/lib/theme";
 
 /** Shared by /settings (client side) and /admin/settings. */

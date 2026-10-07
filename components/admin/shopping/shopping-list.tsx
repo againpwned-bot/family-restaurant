@@ -5,8 +5,10 @@ import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
+import { fetchShopping, resetShoppingChecks, setShoppingCheck } from "@/app/actions/shopping";
 import { Button } from "@/components/ui/button";
 import { useRealtime } from "@/hooks/use-realtime";
+import { safe } from "@/lib/action-result";
 import { dbErrorKey } from "@/lib/errors";
 import {
   buildShoppingList,
@@ -15,31 +17,12 @@ import {
   type ShoppingItem,
   type ShoppingOrder,
 } from "@/lib/shopping";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { ShoppingCheck } from "@/lib/supabase/database.types";
+import type { ShoppingCheck } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export type ShoppingData = { orders: ShoppingOrder[]; ingredients: ShoppingIngredient[]; checks: ShoppingCheck[] };
 
 const EPS = 1e-6;
-
-export async function fetchShopping(today: string): Promise<ShoppingData | null> {
-  const supabase = getSupabaseBrowserClient();
-  const orders = await supabase
-    .from("orders")
-    .select("dish_id, dish_name, quantity")
-    .in("status", ["accepted", "cooking"]);
-  if (orders.error) return null;
-  const ids = [...new Set(orders.data.map((o) => o.dish_id).filter((id): id is string => !!id))];
-  const [ingredients, checks] = await Promise.all([
-    ids.length
-      ? supabase.from("dish_ingredients").select("dish_id, name, quantity, unit").in("dish_id", ids)
-      : Promise.resolve({ data: [] as ShoppingIngredient[], error: null }),
-    supabase.from("shopping_checks").select("*").eq("day", today),
-  ]);
-  if (ingredients.error || checks.error) return null;
-  return { orders: orders.data, ingredients: ingredients.data ?? [], checks: checks.data ?? [] };
-}
 
 const subscribeNever = () => () => {};
 
@@ -56,9 +39,9 @@ export function ShoppingList({ initial, today }: { initial: ShoppingData; today:
   const debounce = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const refetch = useCallback(async () => {
-    const next = await fetchShopping(today);
+    const { data: next } = await safe(fetchShopping());
     if (next) setData(next);
-  }, [today]);
+  }, []);
 
   useRealtime(
     "admin-shopping",
@@ -84,12 +67,7 @@ export function ShoppingList({ initial, today }: { initial: ShoppingData; today:
 
   async function toggle(item: ShoppingItem, done: boolean) {
     setPending((s) => new Set(s).add(item.key));
-    const supabase = getSupabaseBrowserClient();
-    const { error } = await supabase.rpc("set_shopping_check", {
-      p_item_key: item.key,
-      p_checked: !done,
-      p_quantity: item.total,
-    });
+    const { error } = await safe(setShoppingCheck(item.key, !done, item.total));
     setPending((s) => (s.delete(item.key), new Set(s)));
     if (error) return void toast.error(t(`errors.db.${dbErrorKey(error)}`));
     setData((d) => ({
@@ -233,7 +211,7 @@ export function ShoppingList({ initial, today }: { initial: ShoppingData; today:
             variant="ghost"
             disabled={!data.checks.length}
             onClick={async () => {
-              const { error } = await getSupabaseBrowserClient().rpc("reset_shopping_checks");
+              const { error } = await safe(resetShoppingChecks());
               if (error) return void toast.error(t(`errors.db.${dbErrorKey(error)}`));
               setData((d) => ({ ...d, checks: [] }));
               toast.success(t("adminShopping.resetDone"));

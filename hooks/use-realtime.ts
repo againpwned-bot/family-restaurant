@@ -1,25 +1,110 @@
 "use client";
 
-import type { RealtimePostgresChangesPayload } from "@supabase/supabase-js";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
+import type { RealtimeEvent, RealtimeTable } from "@/lib/server/realtime";
 
-type Table = "orders" | "order_events" | "notifications" | "dishes" | "dish_ingredients" | "shopping_checks";
+type Table = RealtimeTable;
 export type RealtimeStatus = "connecting" | "live" | "offline";
+export type RealtimePayload = Omit<RealtimeEvent, "table">;
+
+// One EventSource per tab, shared by every component that listens (browsers
+// allow only a few open connections per site over plain http).
+type Listener = {
+  onEvent: (event: RealtimeEvent) => void;
+  onReconnect: () => void;
+};
+
+const listeners = new Set<Listener>();
+const statusListeners = new Set<() => void>();
+let source: EventSource | null = null;
+let status: RealtimeStatus = "connecting";
+let connectedOnce = false;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let retryDelay = 1000;
+
+function setStatus(next: RealtimeStatus, reconnected = false) {
+  if (status !== next) {
+    status = next;
+    for (const notify of statusListeners) notify();
+  }
+  if (reconnected) for (const l of listeners) l.onReconnect();
+}
+
+function subscribeStatus(notify: () => void) {
+  statusListeners.add(notify);
+  return () => statusListeners.delete(notify);
+}
+
+function connect() {
+  if (source || retryTimer) return;
+  const es = new EventSource("/api/realtime");
+  source = es;
+  es.addEventListener("ready", () => {
+    retryDelay = 1000;
+    const reconnected = connectedOnce;
+    connectedOnce = true;
+    setStatus("live", reconnected);
+  });
+  es.onmessage = (message) => {
+    let event: RealtimeEvent;
+    try {
+      event = JSON.parse(message.data as string) as RealtimeEvent;
+    } catch {
+      return;
+    }
+    for (const l of listeners) l.onEvent(event);
+  };
+  es.onerror = () => {
+    // CONNECTING = the browser retries by itself; CLOSED (e.g. 401 after
+    // signing out elsewhere, or the server restarted) = retry with backoff.
+    setStatus(es.readyState === EventSource.CONNECTING ? "connecting" : "offline");
+    if (es.readyState !== EventSource.CLOSED) return;
+    es.close();
+    source = null;
+    if (!listeners.size) return;
+    retryTimer = setTimeout(() => {
+      retryTimer = null;
+      if (listeners.size) connect();
+    }, retryDelay);
+    retryDelay = Math.min(retryDelay * 2, 30_000);
+  };
+}
+
+function disconnectSoon() {
+  // Keep the connection across a page change (one component unmounts, the next mounts).
+  setTimeout(() => {
+    if (listeners.size) return;
+    source?.close();
+    source = null;
+    if (retryTimer) clearTimeout(retryTimer);
+    retryTimer = null;
+    setStatus("connecting");
+  }, 2000);
+}
+
+/** "client_id=eq.<id>": the only filter form the app uses. */
+function parseFilter(filter: string | undefined) {
+  const match = filter?.match(/^(\w+)=eq\.(.+)$/);
+  return match ? { column: match[1], value: match[2] } : null;
+}
 
 /**
- * Subscribes to postgres_changes on the given tables (RLS decides which rows
- * arrive). `onResync` runs after every (re)connection, so anything missed
- * while offline is fetched again.
+ * Listens to row changes on the given tables (row level security decides
+ * which rows arrive). `onResync` runs after every reconnection and when the
+ * tab becomes visible again, so anything missed meanwhile is fetched again.
  */
 export function useRealtime(
   channelName: string,
   tables: { table: Table; filter?: string }[],
-  onChange: (table: Table, payload: RealtimePostgresChangesPayload<Record<string, unknown>>) => void,
+  onChange: (table: Table, payload: RealtimePayload) => void,
   onResync?: () => void,
 ): RealtimeStatus {
-  const [status, setStatus] = useState<RealtimeStatus>("connecting");
+  const current = useSyncExternalStore(
+    subscribeStatus,
+    () => status,
+    () => "connecting" as const,
+  );
   const handlers = useRef({ onChange, onResync });
   useEffect(() => {
     handlers.current = { onChange, onResync };
@@ -27,51 +112,39 @@ export function useRealtime(
   const key = JSON.stringify(tables);
 
   useEffect(() => {
-    const supabase = getSupabaseBrowserClient();
-    let connectedOnce = false;
-    let cancelled = false;
-    let channel: ReturnType<typeof supabase.channel> | null = null;
-
-    // Realtime must know who we are BEFORE joining: a channel joined without
-    // the user's JWT runs as anon and RLS filters out every row. (supabase-js
-    // only sets the token after the session loads, which can lose the race.)
-    void (async () => {
-      const { data } = await supabase.auth.getSession();
-      if (cancelled) return;
-      if (data.session) await supabase.realtime.setAuth(data.session.access_token);
-      if (cancelled) return;
-
-      channel = supabase.channel(`${channelName}:${Math.random().toString(36).slice(2, 8)}`);
-      for (const { table, filter } of JSON.parse(key) as { table: Table; filter?: string }[]) {
-        channel.on(
-          "postgres_changes",
-          { event: "*", schema: "public", table, ...(filter ? { filter } : {}) },
-          (payload) =>
-            handlers.current.onChange(table, payload as RealtimePostgresChangesPayload<Record<string, unknown>>),
-        );
-      }
-      channel.subscribe((state) => {
-        if (state === "SUBSCRIBED") {
-          setStatus("live");
-          if (connectedOnce) handlers.current.onResync?.();
-          connectedOnce = true;
-        } else if (state === "CHANNEL_ERROR" || state === "TIMED_OUT" || state === "CLOSED") {
-          setStatus("offline");
+    const wanted = (JSON.parse(key) as { table: Table; filter?: string }[]).map((t) => ({
+      table: t.table,
+      filter: parseFilter(t.filter),
+    }));
+    const listener: Listener = {
+      onEvent: (event) => {
+        for (const { table, filter } of wanted) {
+          if (table !== event.table) continue;
+          if (filter) {
+            const row = event.eventType === "DELETE" ? event.old : event.new;
+            // Deletes only carry the primary key; let them through when the column isn't there.
+            if (filter.column in row && String(row[filter.column]) !== filter.value) continue;
+          }
+          handlers.current.onChange(table, { eventType: event.eventType, new: event.new, old: event.old });
+          return;
         }
-      });
-    })();
+      },
+      onReconnect: () => handlers.current.onResync?.(),
+    };
+    listeners.add(listener);
+    connect();
 
-    // Coming back to the tab: the socket may have been throttled; refresh data.
+    // Coming back to the tab: the connection may have been throttled; refresh data.
     const onVisible = () => {
       if (document.visibilityState === "visible") handlers.current.onResync?.();
     };
     document.addEventListener("visibilitychange", onVisible);
     return () => {
-      cancelled = true;
+      listeners.delete(listener);
       document.removeEventListener("visibilitychange", onVisible);
-      if (channel) void supabase.removeChannel(channel);
+      if (!listeners.size) disconnectSoon();
     };
   }, [channelName, key]);
 
-  return status;
+  return current;
 }

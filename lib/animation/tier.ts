@@ -3,7 +3,7 @@
 //   lite     touch / small screens, or desktops on a software renderer (CSS 3D, no WebGL)
 //   reduced  prefers-reduced-motion or the user's choice (short fades only)
 
-import type { AnimationPref, AnimationTier } from "@/lib/supabase/database.types";
+import type { AnimationPref, AnimationTier } from "@/lib/types";
 
 export type { AnimationPref, AnimationTier };
 

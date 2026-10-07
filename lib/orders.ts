@@ -1,4 +1,4 @@
-import type { Order, OrderStatus } from "@/lib/supabase/database.types";
+import type { Order, OrderStatus } from "@/lib/types";
 
 export const OPEN_STATUSES = ["received", "accepted", "cooking", "ready"] as const satisfies readonly OrderStatus[];
 export const CLOSED_STATUSES = ["handed_over", "rejected", "cancelled"] as const satisfies readonly OrderStatus[];

@@ -1,4 +1,4 @@
-import type { AppRole } from "@/lib/supabase/database.types";
+import type { AppRole } from "@/lib/types";
 
 export const ROLES: readonly AppRole[] = ["owner", "admin", "client"];
 

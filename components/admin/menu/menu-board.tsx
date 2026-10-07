@@ -6,6 +6,13 @@ import { useTranslations } from "next-intl";
 import { useCallback, useState, useTransition } from "react";
 import { toast } from "sonner";
 
+
+import {
+  clearTodayMenu,
+  copyYesterdayMenu,
+  fetchMenuBoard,
+  setDishAvailableToday,
+} from "@/app/actions/dishes";
 import { DishPhoto } from "@/components/dish/dish-photo";
 import {
   AlertDialog,
@@ -22,9 +29,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { useRealtime } from "@/hooks/use-realtime";
+import { safe } from "@/lib/action-result";
 import { dbErrorKey } from "@/lib/errors";
 import { matches } from "@/lib/search";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 export type MenuDish = {
@@ -44,11 +51,7 @@ export function MenuBoard({ initialDishes, today }: { initialDishes: MenuDish[];
   const [bulk, startBulk] = useTransition();
 
   const refetch = useCallback(async () => {
-    const { data } = await getSupabaseBrowserClient()
-      .from("dishes")
-      .select("id, name, photo_path, photo_blur, cook_minutes, available_on")
-      .is("archived_at", null)
-      .order("name");
+    const { data } = await safe(fetchMenuBoard());
     if (data) setDishes(data);
   }, []);
 
@@ -71,10 +74,7 @@ export function MenuBoard({ initialDishes, today }: { initialDishes: MenuDish[];
   async function toggle(dish: MenuDish, on: boolean) {
     setPending((s) => new Set(s).add(dish.id));
     setDishes((list) => list.map((d) => (d.id === dish.id ? { ...d, available_on: on ? today : null } : d)));
-    const { data, error } = await getSupabaseBrowserClient().rpc("set_dish_available_today", {
-      p_dish_id: dish.id,
-      p_available: on,
-    });
+    const { data, error } = await safe(setDishAvailableToday(dish.id, on));
     setPending((s) => (s.delete(dish.id), new Set(s)));
     if (error || !data) {
       setDishes((list) => list.map((d) => (d.id === dish.id ? { ...d, available_on: dish.available_on } : d)));
@@ -119,7 +119,7 @@ export function MenuBoard({ initialDishes, today }: { initialDishes: MenuDish[];
             disabled={bulk}
             onClick={() =>
               startBulk(async () => {
-                const { data, error } = await getSupabaseBrowserClient().rpc("copy_yesterday_menu");
+                const { data, error } = await safe(copyYesterdayMenu());
                 if (error) return void toast.error(t(`errors.db.${dbErrorKey(error)}`));
                 toast.success(t("adminMenu.copied", { count: data ?? 0 }));
                 await refetch();
@@ -147,7 +147,7 @@ export function MenuBoard({ initialDishes, today }: { initialDishes: MenuDish[];
                   variant="destructive"
                   onClick={() =>
                     startBulk(async () => {
-                      const { error } = await getSupabaseBrowserClient().rpc("clear_today_menu");
+                      const { error } = await safe(clearTodayMenu());
                       if (error) return void toast.error(t(`errors.db.${dbErrorKey(error)}`));
                       toast.success(t("adminMenu.cleared"));
                       await refetch();

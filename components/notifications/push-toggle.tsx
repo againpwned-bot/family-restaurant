@@ -5,9 +5,10 @@ import { useTranslations } from "next-intl";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
+import { sendTestNotification } from "@/app/actions/notifications";
 import { Button } from "@/components/ui/button";
+import { safe } from "@/lib/action-result";
 import { currentPushState, disablePush, enablePush, type PushState } from "@/lib/push";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 
 const subscribeNever = () => () => {};
 type Browser = "firefox" | "android" | "chrome";
@@ -117,7 +118,7 @@ export function PushToggle() {
             variant="outline"
             disabled={busy}
             onClick={async () => {
-              const { error } = await getSupabaseBrowserClient().rpc("send_test_notification");
+              const { error } = await safe(sendTestNotification());
               if (error) toast.error(t("error"));
               else toast.success(t("testSent"));
             }}

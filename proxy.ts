@@ -1,47 +1,56 @@
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 
 import { canAccessPath, homeFor } from "@/lib/auth/roles";
-import { redirectKeepingCookies, updateSession } from "@/lib/supabase/proxy";
+import {
+  SESSION_COOKIE,
+  decodeSession,
+  encodeSession,
+  sessionCookieOptions,
+  shouldRenew,
+} from "@/lib/server/session-cookie";
 
 // Route protection (formerly "middleware" - renamed to "proxy" in Next.js 16).
-// This is the first gate; layouts re-check the role from the database and RLS
-// is the last word on data.
-export async function proxy(request: NextRequest) {
+// This is the first gate and only checks the signed session cookie; layouts
+// re-check the session and role in the database, and row level security is
+// the last word on data.
+export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  const session = await updateSession(request);
+  // API routes answer 401 themselves; /logout clears a stale cookie.
+  if (pathname.startsWith("/api/") || pathname === "/logout") return NextResponse.next();
+
+  const claims = decodeSession(request.cookies.get(SESSION_COOKIE)?.value);
   const isLogin = pathname === "/login";
 
-  if (!session.userId) {
-    if (isLogin) return session.response();
+  if (!claims) {
+    if (isLogin) return NextResponse.next();
     const url = new URL("/login", request.url);
     if (pathname !== "/") url.searchParams.set("next", pathname + search);
-    return redirectKeepingCookies(url, session.response());
+    return NextResponse.redirect(url);
   }
 
-  if (!session.role) {
-    // Signed in, but no profile: not a family account. Drop the session.
-    await session.supabase.auth.signOut({ scope: "local" });
-    if (isLogin) return session.response();
-    const url = new URL("/login", request.url);
-    url.searchParams.set("error", "no_access");
-    return redirectKeepingCookies(url, session.response());
-  }
-
+  let response: NextResponse;
   if (isLogin) {
-    return redirectKeepingCookies(new URL(homeFor(session.role), request.url), session.response());
+    response = NextResponse.redirect(new URL(homeFor(claims.role), request.url));
+  } else if (!canAccessPath(claims.role, pathname)) {
+    const target = pathname.startsWith("/admin") && claims.role !== "client" ? "/admin" : homeFor(claims.role);
+    response = NextResponse.redirect(new URL(target, request.url));
+  } else {
+    response = NextResponse.next();
   }
 
-  if (!canAccessPath(session.role, pathname)) {
-    const target = pathname.startsWith("/admin") && session.role !== "client" ? "/admin" : homeFor(session.role);
-    return redirectKeepingCookies(new URL(target, request.url), session.response());
+  if (shouldRenew(claims)) {
+    response.cookies.set(
+      SESSION_COOKIE,
+      encodeSession({ sid: claims.sid, uid: claims.uid, role: claims.role }),
+      sessionCookieOptions(request.nextUrl.protocol === "https:" || request.headers.get("x-forwarded-proto") === "https"),
+    );
   }
-
-  return session.response();
+  return response;
 }
 
 export const config = {
   matcher: [
-    // Everything except static assets, the service worker, the manifest and icons.
-    "/((?!_next/static|_next/image|favicon\\.ico|sw\\.js|manifest\\.webmanifest|icons/|sounds/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|mp3|ogg|txt|xml)$).*)",
+    // Everything except static assets, uploaded photos, the service worker, the manifest and icons.
+    "/((?!_next/static|_next/image|uploads/|favicon\\.ico|sw\\.js|manifest\\.webmanifest|icons/|sounds/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|mp3|ogg|txt|xml)$).*)",
   ],
 };

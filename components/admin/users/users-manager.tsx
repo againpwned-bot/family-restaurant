@@ -47,7 +47,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { KITCHEN_TZ } from "@/lib/dates";
 import { PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "@/lib/auth/username";
-import type { AppRole } from "@/lib/supabase/database.types";
+import type { AppRole } from "@/lib/types";
 
 export type ManagedUser = { id: string; username: string; display_name: string; role: AppRole; created_at: string };
 type Dialog = { kind: "add" } | { kind: "edit" | "reset" | "delete"; user: ManagedUser } | null;

@@ -7,7 +7,7 @@ import { useTranslations } from "next-intl";
 import type { ReactNode } from "react";
 
 import { ADMIN_SETTINGS, adminNav, clientNav, isActive, type NavItem } from "@/components/layout/nav-items";
-import type { AppRole } from "@/lib/supabase/database.types";
+import type { AppRole } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 /** Horizontal links for the desktop client header. */

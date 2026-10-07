@@ -6,8 +6,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { PushPrompt } from "@/components/notifications/push-prompt";
 import { requireProfile } from "@/lib/auth/dal";
 import { shouldShowPushPrompt } from "@/lib/push-prompt";
-import { CLOSED_STATUSES, HISTORY_PAGE, OPEN_STATUSES } from "@/lib/orders";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { asUser } from "@/lib/server/db";
+import { activeOrders, orderHistory } from "@/lib/server/queries";
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("orders");
@@ -17,24 +17,10 @@ export async function generateMetadata(): Promise<Metadata> {
 export default async function MyOrdersPage() {
   const profile = await requireProfile({ roles: ["owner", "client"] });
   const t = await getTranslations("orders");
-  const supabase = await createSupabaseServerClient();
-  const [active, history] = await Promise.all([
-    supabase
-      .from("orders")
-      .select("*")
-      .eq("client_id", profile.id)
-      .in("status", [...OPEN_STATUSES])
-      .order("created_at"),
-    supabase
-      .from("orders")
-      .select("*")
-      .eq("client_id", profile.id)
-      .in("status", [...CLOSED_STATUSES])
-      .order("created_at", { ascending: false })
-      .limit(HISTORY_PAGE),
-  ]);
-  if (active.error) throw new Error(active.error.message);
-  if (history.error) throw new Error(history.error.message);
+  const { active, history } = await asUser(profile.id, async (tx) => ({
+    active: await activeOrders(tx, profile.id),
+    history: await orderHistory(tx, profile.id),
+  }));
 
   return (
     <>
@@ -44,7 +30,7 @@ export default async function MyOrdersPage() {
           <PushPrompt />
         </div>
       ) : null}
-      <MyOrders userId={profile.id} initialActive={active.data} initialHistory={history.data ?? []} />
+      <MyOrders userId={profile.id} initialActive={active} initialHistory={history} />
     </>
   );
 }

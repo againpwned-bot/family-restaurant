@@ -147,6 +147,7 @@
       "invalid_ingredients": "The ingredient list is not valid.",
       "too_many_ingredients": "You can have at most 60 ingredients.",
       "invalid_item": "Invalid item.",
+      "invalid_photo": "The photo couldn't be saved. Try another picture (JPEG, PNG or WebP).",
       "network": "No connection. Check the internet and try again.",
       "unknown": "Something went wrong. Please try again."
     }

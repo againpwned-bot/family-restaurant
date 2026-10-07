@@ -5,13 +5,14 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useMemo, useState } from "react";
 
+import { fetchMyActiveOrders, fetchMyHistory } from "@/app/actions/orders";
 import { ClientOrderCard, STATUS_TONE, useOrderTimes } from "@/components/client/client-order-card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRealtime } from "@/hooks/use-realtime";
-import { CLOSED_STATUSES, HISTORY_PAGE, OPEN_STATUSES, isOpen, newer } from "@/lib/orders";
-import { getSupabaseBrowserClient } from "@/lib/supabase/client";
-import type { Order } from "@/lib/supabase/database.types";
+import { safe } from "@/lib/action-result";
+import { HISTORY_PAGE, isOpen, newer } from "@/lib/orders";
+import type { Order } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export function MyOrders({
@@ -32,13 +33,9 @@ export function MyOrders({
   const apply = useCallback((o: Order) => setOrders((m) => new Map(m).set(o.id, newer(m.get(o.id), o))), []);
 
   const resync = useCallback(async () => {
-    const { data } = await getSupabaseBrowserClient()
-      .from("orders")
-      .select("*")
-      .eq("client_id", userId)
-      .in("status", [...OPEN_STATUSES]);
+    const { data } = await safe(fetchMyActiveOrders());
     data?.forEach(apply);
-  }, [apply, userId]);
+  }, [apply]);
 
   useRealtime(
     "my-orders",
@@ -57,16 +54,8 @@ export function MyOrders({
 
   async function loadMore() {
     setLoading(true);
-    const oldest = history.at(-1)?.created_at;
-    let query = getSupabaseBrowserClient()
-      .from("orders")
-      .select("*")
-      .eq("client_id", userId)
-      .in("status", [...CLOSED_STATUSES])
-      .order("created_at", { ascending: false })
-      .limit(HISTORY_PAGE);
-    if (oldest) query = query.lt("created_at", oldest);
-    const { data } = await query;
+    const oldest = history.at(-1)?.created_at ?? null;
+    const { data } = await safe(fetchMyHistory(oldest));
     setLoading(false);
     if (data) {
       data.forEach(apply);

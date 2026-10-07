@@ -8,7 +8,7 @@ import { timerState } from "@/components/orders/order-timer";
 import { useAnimation } from "@/components/providers/animation-provider";
 import { useNow } from "@/hooks/use-now";
 import { formatDuration } from "@/lib/dates";
-import type { Order } from "@/lib/supabase/database.types";
+import type { Order } from "@/lib/types";
 
 const loadRing = () => import("@/components/three/timer-ring-3d");
 const TimerRing3D = dynamic(loadRing, { ssr: false });

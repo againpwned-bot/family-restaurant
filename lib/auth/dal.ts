@@ -1,30 +1,53 @@
 import "server-only";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 
 import { canAccessPath, homeFor } from "@/lib/auth/roles";
-import type { AppRole, Profile } from "@/lib/supabase/database.types";
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { row } from "@/lib/server/database";
+import { getDb } from "@/lib/server/db";
+import { SESSION_COOKIE, decodeSession } from "@/lib/server/session-cookie";
+import type { AppRole, Profile } from "@/lib/types";
+
+export type Session = { sessionId: string; profile: Profile };
 
 /**
- * Data access layer: the signed-in user's profile, read once per request.
- * The role comes from the database (source of truth), not from the token.
+ * Data access layer: who is signed in, checked once per request. The cookie
+ * signature proves it was issued here; the database proves the session is
+ * still open (not signed out, password not reset) and gives the current role.
  */
-export const getCurrentProfile = cache(async (): Promise<Profile | null> => {
-  const supabase = await createSupabaseServerClient();
-  const { data } = await supabase.auth.getClaims();
-  const userId = data?.claims?.sub;
-  if (!userId) return null;
-
-  const { data: profile } = await supabase.from("profiles").select("*").eq("id", userId).maybeSingle();
-  return profile ?? null;
+export const getSession = cache(async (): Promise<Session | null> => {
+  const claims = decodeSession((await cookies()).get(SESSION_COOKIE)?.value);
+  if (!claims) return null;
+  const db = await getDb();
+  const profile = await row<Profile>(
+    db,
+    `select p.* from auth.sessions s join public.profiles p on p.id = s.user_id
+      where s.id = $1 and s.user_id = $2`,
+    [claims.sid, claims.uid],
+  );
+  if (!profile) return null;
+  // Rough "last seen", at most once a minute per session.
+  void db
+    .query("update auth.sessions set last_seen_at = now() where id = $1 and last_seen_at < now() - interval '1 minute'", [
+      claims.sid,
+    ])
+    .catch(() => {});
+  return { sessionId: claims.sid, profile };
 });
+
+export const getCurrentProfile = cache(async (): Promise<Profile | null> => (await getSession())?.profile ?? null);
 
 /** Profile of the signed-in user, or a redirect if missing / not allowed here. */
 export async function requireProfile(options?: { roles?: AppRole[]; path?: string }): Promise<Profile> {
   const profile = await getCurrentProfile();
-  if (!profile) redirect("/login");
+  if (!profile) {
+    // A cookie that no longer matches an open session must be cleared first,
+    // otherwise the proxy would keep sending the browser back here.
+    const hasCookie = (await cookies()).has(SESSION_COOKIE);
+    redirect(hasCookie ? "/logout" : "/login");
+  }
   if (options?.roles && !options.roles.includes(profile.role)) redirect(homeFor(profile.role));
   if (options?.path && !canAccessPath(profile.role, options.path)) redirect(homeFor(profile.role));
   return profile;

@@ -1,26 +1,41 @@
-// Stage 3 (client) end-to-end checks: menu home (wheel + list), dish page and
-// ordering, live order status, cancel, history. Run with `npm run dev:local`.
+// Client end-to-end checks: menu home (wheel + list), dish page and ordering,
+// live order status, cancel, history. Run with `npm run dev` in another
+// terminal (see helpers.mts).
 
-import { BASE, SHOTS, account, api, browser, check, context, done, login, noHorizontalOverflow } from "./helpers.mjs";
+import {
+  BASE,
+  SHOTS,
+  account,
+  browser,
+  check,
+  clearBoard,
+  clearMenu,
+  context,
+  done,
+  hydrated,
+  login,
+  noHorizontalOverflow,
+  onBoard,
+  orderNo,
+  placeOrder,
+  recordNotifications,
+  sampleDishes,
+  setOnMenu,
+  temporaryAccount,
+  until,
+} from "./helpers.mjs";
 
 const b = await browser();
-const adminApi = await api(account("admin"));
 const clientAcc = account("client");
 
-// --- setup: clean board; Sarmale + Ciorbă on the menu, Mici off -------------------
-const { data: leftovers } = await adminApi
-  .from("orders")
-  .select("id")
-  .in("status", ["received", "accepted", "cooking", "ready"]);
-for (const o of leftovers ?? []) await adminApi.rpc("reject_order", { p_order_id: o.id, p_reason: null });
-const { data: dishes } = await adminApi.from("dishes").select("id, name").is("archived_at", null);
-const byName = (prefix: string) => dishes!.find((d) => d.name.startsWith(prefix))!;
-const sarmale = byName("Sarmale");
-const ciorba = byName("Ciorbă");
-const mici = byName("Mici");
-await adminApi.rpc("clear_today_menu");
-for (const d of [sarmale, ciorba])
-  await adminApi.rpc("set_dish_available_today", { p_dish_id: d.id, p_available: true });
+// --- setup: the kitchen's browser; clean board; Sarmale + Ciorbă on the menu, Mici off
+const kitchenCtx = await context(b, "desktop");
+const kitchenNotifications = await recordNotifications(kitchenCtx);
+const kitchen = await login(kitchenCtx, account("admin"));
+await clearBoard(kitchen);
+const { sarmale, ciorba, mici } = await sampleDishes(kitchen);
+await clearMenu(kitchen);
+for (const d of [sarmale, ciorba]) await setOnMenu(kitchen, d.name, true);
 
 console.log("\n== menu home");
 const phone = await context(b, "phone");
@@ -52,10 +67,12 @@ check("search filters (accent-insensitive)", (await page.getByRole("link", { nam
 await page.getByRole("searchbox", { name: "Caută" }).fill("");
 
 // The admin adds a dish: it appears without reloading.
-await adminApi.rpc("set_dish_available_today", { p_dish_id: mici.id, p_available: true });
+await setOnMenu(kitchen, mici.name, true);
 await page.getByRole("link", { name: `Comandă ${mici.name}` }).waitFor({ timeout: 10_000 });
 check("menu updates live when the kitchen adds a dish", true);
-await adminApi.rpc("set_dish_available_today", { p_dish_id: mici.id, p_available: false });
+await setOnMenu(kitchen, mici.name, false);
+await page.getByRole("link", { name: `Comandă ${mici.name}` }).waitFor({ state: "detached", timeout: 10_000 });
+check("... and when it takes one off", true);
 
 console.log("\n== dish page + order");
 // Flip a card to its ingredients and back (3D flip on lite/full).
@@ -83,6 +100,7 @@ check(
 check("dish page shows ingredients", await dish.getByText("Carne tocată de porc").isVisible());
 check("phone: dish page fits", await noHorizontalOverflow(page));
 await page.screenshot({ path: `${SHOTS}/client-dish-phone.png` });
+await hydrated(page, "[role=dialog] textarea");
 await dish.getByRole("button", { name: "O porție în plus" }).click();
 check("quantity stepper", (await dish.locator("output").textContent())?.includes("2 porții"));
 await dish.getByRole("radio", { name: "La o anumită oră" }).click();
@@ -92,6 +110,7 @@ await dish.getByLabel("Mențiuni (opțional)").fill("Mai multă smântână, vă
 await dish.getByRole("button", { name: "Trimite comanda" }).click();
 await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/, { timeout: 15_000 });
 const orderId = page.url().split("/").pop()!;
+const orderNumber = Number((await page.getByText(/Comanda #\d+/).first().textContent())!.match(/#(\d+)/)![1]);
 await page.getByRole("dialog").waitFor({ state: "detached", timeout: 10_000 });
 check("overlay closes when the order is placed", true);
 await page.getByRole("heading", { name: "Am primit comanda. Așteaptă confirmarea bucătarului." }).waitFor();
@@ -100,22 +119,22 @@ check("comment shown on the status screen", await page.getByText("Mai multă sm�
 await page.screenshot({ path: `${SHOTS}/client-order-received-phone.png`, fullPage: true });
 
 console.log("\n== live status");
-await adminApi.rpc("accept_order", { p_order_id: orderId, p_minutes: 20 });
+await onBoard(kitchen, orderNumber, { do: "accept", minutes: 20 });
 await page.getByRole("status").filter({ hasText: "Comanda ta a fost acceptată" }).waitFor({ timeout: 10_000 });
 check("banner: accepted", true);
 await page.getByRole("heading", { name: /acceptată/ }).waitFor();
 const timerText = await page.getByRole("timer").textContent();
 check(`live timer ring (${timerText})`, /^(19|20):\d\d$/.test(timerText ?? ""));
-await adminApi.rpc("extend_order_timer", { p_order_id: orderId, p_minutes: 10 });
+await onBoard(kitchen, orderNumber, { do: "extend", minutes: 10 });
 await page.getByRole("status").filter({ hasText: "Mai durează puțin" }).waitFor({ timeout: 10_000 });
 check("banner: timer extended", true);
 await page.waitForTimeout(1200);
 check("timer jumped by 10 min", /^(29|30):\d\d$/.test((await page.getByRole("timer").textContent()) ?? ""));
-await adminApi.rpc("start_cooking", { p_order_id: orderId });
+await onBoard(kitchen, orderNumber, { do: "cook" });
 await page.getByRole("heading", { name: "Se gătește acum." }).waitFor({ timeout: 10_000 });
 check("cooking: cancel button is gone", (await page.getByRole("button", { name: "Anulează comanda" }).count()) === 0);
 await page.screenshot({ path: `${SHOTS}/client-order-cooking-phone.png`, fullPage: true });
-await adminApi.rpc("mark_order_ready", { p_order_id: orderId });
+await onBoard(kitchen, orderNumber, { do: "ready" });
 await page.getByRole("status").filter({ hasText: "Mâncarea e gata!" }).waitFor({ timeout: 10_000 });
 check("banner: ready", true);
 await page.getByRole("heading", { name: "E gata! Vino să o iei." }).waitFor();
@@ -124,12 +143,12 @@ check(
   (await page.locator("ol li", { hasText: /Acceptată de|Pusă pe foc|Timp prelungit|Gata!/ }).count()) >= 4,
 );
 await page.screenshot({ path: `${SHOTS}/client-order-ready-phone.png`, fullPage: true });
-await adminApi.rpc("hand_over_order", { p_order_id: orderId });
+await onBoard(kitchen, orderNumber, { do: "handOver" });
 
 console.log("\n== my orders + cancel");
-const { data: o2 } = await (await api(clientAcc)).rpc("place_order", { p_dish_id: ciorba.id, p_quantity: 1 });
+const o2 = await placeOrder(page, ciorba.id);
 await page.goto(`${BASE}/orders`);
-const card = page.locator("article", { hasText: `#${o2!.number}` });
+const card = page.locator("article", { hasText: orderNo(o2.number) });
 await card.waitFor();
 check("active order listed", true);
 check(
@@ -142,10 +161,9 @@ await card.getByRole("button", { name: "Anulează comanda" }).click();
 await page.getByRole("alertdialog").getByRole("button", { name: "Da, anulează" }).click();
 await page.getByText("Comanda a fost anulată.").waitFor();
 check("client cancels while 'received'", true);
-const { data: staffNotif } = await adminApi.from("notifications").select("type").eq("order_id", o2!.id);
 check(
   "kitchen got the cancellation",
-  (staffNotif ?? []).some((n) => n.type === "order_cancelled"),
+  await until(() => kitchenNotifications.some((n) => n.type === "order_cancelled" && n.order_id === o2.id)),
 );
 await phone.close();
 
@@ -204,5 +222,47 @@ await ap.goto(`${BASE}/dish/${sarmale.id}`);
 check("admin role is redirected away from client pages", new URL(ap.url()).pathname === "/admin");
 await adminCtx.close();
 
+console.log("\n== account: change password + sign out");
+{
+  const temp = await temporaryAccount(b);
+  const phoneCtx = await context(b, "phone");
+  const p = await login(phoneCtx, temp.account);
+  const otherCtx = await context(b, "desktop"); // a second device, signed in too
+  const other = await login(otherCtx, temp.account);
+
+  await p.goto(`${BASE}/settings`);
+  await hydrated(p, "input[autocomplete='new-password']");
+  const newPassword = `${temp.account.password}-new`;
+  await p.getByLabel("Parola actuală").fill("not-the-password");
+  await p.getByLabel("Parola nouă", { exact: true }).fill(newPassword);
+  await p.getByLabel("Confirmă parola nouă").fill(newPassword);
+  await p.getByRole("button", { name: "Schimbă parola" }).click();
+  await p.getByText("Parola actuală nu e corectă.").waitFor();
+  check("wrong current password is refused", true);
+  await p.getByLabel("Parola actuală").fill(temp.account.password);
+  await p.getByLabel("Parola nouă", { exact: true }).fill(newPassword);
+  await p.getByLabel("Confirmă parola nouă").fill(newPassword);
+  await p.getByRole("button", { name: "Schimbă parola" }).click();
+  await p.getByText("Gata! Parola a fost schimbată.").waitFor();
+  check("password changed", true);
+  await p.goto(`${BASE}/orders`);
+  check("this device stays signed in", new URL(p.url()).pathname === "/orders");
+  await other.goto(`${BASE}/orders`);
+  check("the other device is signed out", new URL(other.url()).pathname === "/login");
+
+  const stolen = (await phoneCtx.cookies()).find((c) => c.name === "meniu_session")!;
+  await p.getByRole("button", { name: "Contul meu" }).click();
+  await p.getByRole("menuitem", { name: "Deconectare" }).click();
+  await p.waitForURL(`${BASE}/login`);
+  check("sign out lands on the login page", true);
+  await otherCtx.addCookies([stolen]);
+  await other.goto(`${BASE}/orders`);
+  check("the old session cookie no longer works", new URL(other.url()).pathname === "/login");
+  await otherCtx.close();
+  await phoneCtx.close();
+  await temp.remove();
+}
+
+await kitchenCtx.close();
 await b.close();
 done("client e2e");
