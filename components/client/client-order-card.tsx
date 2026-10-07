@@ -8,6 +8,7 @@ import { toast } from "sonner";
 
 import { DishPhoto } from "@/components/dish/dish-photo";
 import { timerState } from "@/components/orders/order-timer";
+import { StatusFlip } from "@/components/motion/status-flip";
 import { StatusSteps } from "@/components/orders/status-steps";
 import { TimerRing } from "@/components/orders/timer-ring";
 import {
@@ -160,7 +161,7 @@ export function ClientOrderCard({ order, onChange }: { order: Order; onChange: (
 
       <div className="flex items-center gap-4">
         <OrderCountdown order={order} />
-        <div className="min-w-0 flex-1">
+        <StatusFlip statusKey={order.status} className="min-w-0 flex-1">
           <p className={cn("font-semibold", order.status === "ready" && "text-lg text-success")}>
             {order.status === "ready" ? (
               <CircleCheck className="mr-1.5 inline size-5 align-[-4px]" aria-hidden="true" />
@@ -173,7 +174,7 @@ export function ClientOrderCard({ order, onChange }: { order: Order; onChange: (
           {order.status === "rejected" && order.reject_reason ? (
             <p className="text-sm text-muted-foreground">{t("orders.reason", { reason: order.reject_reason })}</p>
           ) : null}
-        </div>
+        </StatusFlip>
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-2">

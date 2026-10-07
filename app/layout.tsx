@@ -4,8 +4,10 @@ import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 
+import { AnimationProvider } from "@/components/providers/animation-provider";
 import { MotionProvider } from "@/components/providers/motion-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { getCurrentProfile } from "@/lib/auth/dal";
 import { THEME_COOKIE, resolveTheme } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
@@ -49,12 +51,21 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();
   const theme = resolveTheme((await cookies()).get(THEME_COOKIE)?.value);
+  const profile = await getCurrentProfile();
 
   return (
     <html lang={locale} className={cn(playfair.variable, karla.variable, theme !== "system" && theme)}>
       <body className="min-h-dvh antialiased">
         <NextIntlClientProvider>
-          <MotionProvider>{children}</MotionProvider>
+          <MotionProvider>
+            <AnimationProvider
+              userId={profile?.id ?? null}
+              initialPref={profile?.animation_pref ?? "auto"}
+              initialDetected={profile?.animation_detected ?? null}
+            >
+              {children}
+            </AnimationProvider>
+          </MotionProvider>
           <Toaster
             theme={theme}
             position="bottom-center"

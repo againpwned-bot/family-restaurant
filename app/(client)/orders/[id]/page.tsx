@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { OrderStatusView } from "@/components/client/order-status-view";
 import { requireProfile } from "@/lib/auth/dal";
 import { kitchenDate } from "@/lib/dates";
+import { shouldShowPushPrompt } from "@/lib/push-prompt";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -42,6 +43,7 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
       initialEvents={events.data ?? []}
       people={Object.fromEntries((people.data ?? []).map((p) => [p.id, p.display_name]))}
       dishAvailable={dish.data?.available_on === kitchenDate()}
+      showPushPrompt={await shouldShowPushPrompt()}
     />
   );
 }

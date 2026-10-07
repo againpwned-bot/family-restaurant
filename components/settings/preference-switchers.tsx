@@ -3,14 +3,16 @@
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useOptimistic, useTransition, type ReactNode } from "react";
+import { toast } from "sonner";
 
 import { setLocale, setTheme } from "@/app/actions/preferences";
+import { useAnimation } from "@/components/providers/animation-provider";
 import { LOCALES } from "@/i18n/config";
 import type { ThemePref } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
 /** Radio-group style segmented control (arrow keys move between options). */
-function Segmented<T extends string>({
+export function Segmented<T extends string>({
   label,
   value,
   options,
@@ -117,5 +119,26 @@ export function ThemeSetting({ current }: { current: ThemePref }) {
         })
       }
     />
+  );
+}
+
+export function AnimationSetting() {
+  const t = useTranslations("animations");
+  const { pref, setPref, detected, renderer } = useAnimation();
+  return (
+    <div className="grid gap-3">
+      <Segmented
+        label={t("title")}
+        value={pref}
+        options={(["auto", "full", "lite", "reduced"] as const).map((value) => ({ value, label: t(value) }))}
+        onChange={(value) => void setPref(value).then(() => toast.success(t("saved")))}
+      />
+      {detected ? (
+        <p className="text-sm text-muted-foreground">
+          {t("detected", { tier: t(detected) })}
+          {renderer ? <span className="block text-xs">{t("gpu", { renderer })}</span> : null}
+        </p>
+      ) : null}
+    </div>
   );
 }

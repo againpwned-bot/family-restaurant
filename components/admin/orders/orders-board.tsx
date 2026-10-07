@@ -49,7 +49,9 @@ export function OrdersBoard({
   initialOrders,
   people: initialPeople,
   dishes,
+  showPushPrompt,
 }: {
+  showPushPrompt: boolean;
   initialOrders: Order[];
   people: Record<string, string>;
   dishes: DishInfo;
@@ -135,7 +137,7 @@ export function OrdersBoard({
         <SoundToggle />
       </div>
 
-      <PushPrompt />
+      {showPushPrompt ? <PushPrompt /> : null}
 
       {total === 0 ? (
         <p className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center text-muted-foreground">
@@ -260,12 +262,13 @@ function SoundToggle() {
   }, []);
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="relative">
       <Button
         variant="outline"
         size="sm"
         className="h-9 rounded-full pointer-coarse:h-10"
         aria-pressed={!value}
+        aria-describedby={!value && blocked ? "sound-blocked-hint" : undefined}
         onClick={() => {
           setMuted(!value);
           setMutedState(!value);
@@ -274,7 +277,15 @@ function SoundToggle() {
         {value ? <BellOff aria-hidden="true" /> : <BellRing aria-hidden="true" />}
         {value ? t("off") : t("on")}
       </Button>
-      {!value && blocked ? <span className="text-sm text-muted-foreground">{t("blocked")}</span> : null}
+      {/* Out of the flow on purpose: appearing after load must not push the board down. */}
+      {!value && blocked ? (
+        <p
+          id="sound-blocked-hint"
+          className="absolute top-full left-0 z-10 mt-1.5 w-64 rounded-xl border border-border bg-popover px-3 py-2 text-xs text-muted-foreground shadow-md"
+        >
+          {t("blocked")}
+        </p>
+      ) : null}
     </div>
   );
 }

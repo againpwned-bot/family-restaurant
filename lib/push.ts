@@ -7,6 +7,13 @@ export type PushState = "unsupported" | "not-configured" | "default" | "denied" 
 
 export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
+/** Set once notifications are on (or the prompt was dismissed): the server then skips the prompt. */
+export const PUSH_PROMPT_COOKIE = "push-prompt";
+
+export function hidePushPromptFromNowOn() {
+  document.cookie = `${PUSH_PROMPT_COOKIE}=hidden; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+}
+
 export function pushSupported(): boolean {
   return (
     typeof window !== "undefined" &&
@@ -70,6 +77,7 @@ export async function enablePush(): Promise<PushState> {
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     }));
   await save(subscription);
+  hidePushPromptFromNowOn();
   return "enabled";
 }
 

@@ -2,45 +2,33 @@
 
 import { BellRing, LoaderCircle, X } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { useState, useSyncExternalStore } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { DeniedHelp, usePushState } from "@/components/notifications/push-toggle";
 import { Button } from "@/components/ui/button";
-import { enablePush } from "@/lib/push";
-
-const KEY = "push-prompt-dismissed";
-const listeners = new Set<() => void>();
-const readDismissed = () => {
-  try {
-    return localStorage.getItem(KEY) === "1";
-  } catch {
-    return false;
-  }
-};
+import { enablePush, hidePushPromptFromNowOn } from "@/lib/push";
 
 /** Small card that offers notifications where they matter (orders pages). */
 export function PushPrompt() {
   const t = useTranslations("push");
-  const [state, setState] = usePushState();
-  const dismissed = useSyncExternalStore(
-    (l) => (listeners.add(l), () => listeners.delete(l)),
-    readDismissed,
-    () => true,
-  );
+  const [state, setState] = usePushState({ deferred: true });
+  const [dismissed, setDismissed] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const dismiss = () => {
-    try {
-      localStorage.setItem(KEY, "1");
-    } catch {
-      // keep it for this page only
-    }
-    listeners.forEach((l) => l());
+    hidePushPromptFromNowOn();
+    setDismissed(true);
   };
 
-  if (dismissed || state === null || state === "enabled" || state === "unsupported" || state === "not-configured")
-    return null;
+  // Already on, or not possible here: don't offer it again on this browser.
+  useEffect(() => {
+    if (state === "enabled" || state === "unsupported" || state === "not-configured") hidePushPromptFromNowOn();
+  }, [state]);
+
+  // Rendered on the server (state === null) so it paints with the page; the
+  // server leaves it out entirely once the cookie says it's no longer needed.
+  if (dismissed || state === "enabled" || state === "unsupported" || state === "not-configured") return null;
   if (state === "denied") return <DeniedHelp onDismiss={dismiss} />;
 
   return (

@@ -58,21 +58,42 @@ check("menu updates live when the kitchen adds a dish", true);
 await adminApi.rpc("set_dish_available_today", { p_dish_id: mici.id, p_available: false });
 
 console.log("\n== dish page + order");
+// Flip a card to its ingredients and back (3D flip on lite/full).
+await page.getByRole("button", { name: `Vezi ingredientele pentru ${sarmale.name}` }).click();
+await page.getByRole("button", { name: `Înapoi la poza pentru ${sarmale.name}` }).waitFor();
+check(
+  "card flips to its ingredients",
+  await page.getByRole("button", { name: `Înapoi la poza pentru ${sarmale.name}` }).isVisible(),
+);
+await page.waitForTimeout(500);
+await page.screenshot({ path: `${SHOTS}/client-card-flipped-phone.png` });
+await page.getByRole("button", { name: `Înapoi la poza pentru ${sarmale.name}` }).click();
+await page.waitForTimeout(500);
+
+// Opening a dish from the menu: an overlay over the menu (shared photo element).
 await page.getByRole("link", { name: `Comandă ${sarmale.name}` }).click();
 await page.waitForURL(`${BASE}/dish/${sarmale.id}`);
-await page.getByRole("heading", { level: 1, name: sarmale.name }).waitFor();
-check("dish page shows ingredients", await page.getByText("Carne tocată de porc").isVisible());
+const dish = page.getByRole("dialog");
+await dish.getByRole("heading", { level: 1, name: sarmale.name }).waitFor();
+// The menu stays mounted underneath (hidden from assistive tech while the dialog is open).
+check(
+  "dish opens as an overlay over the menu",
+  (await page.locator('[role="radiogroup"][aria-label="Mod de afișare"]').count()) === 1,
+);
+check("dish page shows ingredients", await dish.getByText("Carne tocată de porc").isVisible());
 check("phone: dish page fits", await noHorizontalOverflow(page));
-await page.screenshot({ path: `${SHOTS}/client-dish-phone.png`, fullPage: true });
-await page.getByRole("button", { name: "O porție în plus" }).click();
-check("quantity stepper", (await page.locator("output").textContent())?.includes("2 porții"));
-await page.getByRole("radio", { name: "La o anumită oră" }).click();
-check("time picker appears", await page.locator('input[type="time"]').isVisible());
-await page.getByRole("radio", { name: "Cât mai repede" }).click();
-await page.getByLabel("Mențiuni (opțional)").fill("Mai multă smântână, vă rog");
-await page.getByRole("button", { name: "Trimite comanda" }).click();
+await page.screenshot({ path: `${SHOTS}/client-dish-phone.png` });
+await dish.getByRole("button", { name: "O porție în plus" }).click();
+check("quantity stepper", (await dish.locator("output").textContent())?.includes("2 porții"));
+await dish.getByRole("radio", { name: "La o anumită oră" }).click();
+check("time picker appears", await dish.locator('input[type="time"]').isVisible());
+await dish.getByRole("radio", { name: "Cât mai repede" }).click();
+await dish.getByLabel("Mențiuni (opțional)").fill("Mai multă smântână, vă rog");
+await dish.getByRole("button", { name: "Trimite comanda" }).click();
 await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/, { timeout: 15_000 });
 const orderId = page.url().split("/").pop()!;
+await page.getByRole("dialog").waitFor({ state: "detached", timeout: 10_000 });
+check("overlay closes when the order is placed", true);
 await page.getByRole("heading", { name: "Am primit comanda. Așteaptă confirmarea bucătarului." }).waitFor();
 check("order sent, status screen shows 'received'", true);
 check("comment shown on the status screen", await page.getByText("Mai multă smântână, vă rog").isVisible());
@@ -127,6 +148,25 @@ check(
   (staffNotif ?? []).some((n) => n.type === "order_cancelled"),
 );
 await phone.close();
+
+console.log("\n== animation tiers");
+{
+  const ctx = await context(b, "desktop");
+  const p = await login(ctx, clientAcc);
+  await p.goto(`${BASE}/settings`);
+  await p.getByRole("radio", { name: "Reduse" }).click();
+  await p.getByText("Preferința a fost salvată.").waitFor();
+  check("tier attribute = reduced", (await p.evaluate(() => document.documentElement.dataset.tier)) === "reduced");
+  await p.goto(`${BASE}/`);
+  await p.getByRole("link", { name: `Comandă ${sarmale.name}` }).waitFor();
+  check("reduced: list view, no 3D wheel", (await p.getByRole("listbox", { name: "Meniul de azi" }).count()) === 0);
+  await p.goto(`${BASE}/settings`);
+  await p.getByRole("radio", { name: "Auto" }).click();
+  await p.getByText("Preferința a fost salvată.").waitFor();
+  const detected = await p.evaluate(() => document.documentElement.dataset.tier);
+  check(`auto: headless Chromium (software GL) is detected as lite (${detected})`, detected === "lite");
+  await ctx.close();
+}
 
 console.log("\n== desktop + roles");
 const desk = await context(b, "desktop");

@@ -169,14 +169,20 @@ export function WorksWheel({
     };
   }, [stage, count]);
 
+  // Starts the frame loop if it isn't running. Set by the effect below; called
+  // by every input (wheel, drag, keys, index) through `to`.
+  const kick = React.useRef<() => void>(() => {});
+
   // One pass per frame: ease toward the target, then write every transform.
+  // The loop only runs while the wheel is moving: it stops once `turn` has
+  // reached `target`, restarts on input, and pauses while the tab is hidden.
   React.useEffect(() => {
     if (!stage.h) return;
     let frame = 0;
     const { ringR, ringScale, drumR, bow } = metrics;
 
     const draw = () => {
-      frame = requestAnimationFrame(draw);
+      frame = 0;
       const gap = target.current - turn.current;
       if (Math.abs(gap) < 0.0005) turn.current = target.current;
       else turn.current += gap * (reduced ? 1 : EASE);
@@ -219,15 +225,39 @@ export function WorksWheel({
       if (titleRef.current) titleRef.current.style.opacity = String(m);
       const near = clamp(Math.round(pos), 0, last);
       setActive((prev) => (prev === near ? prev : near));
+
+      // Settled: this frame wrote the final transforms, nothing left to do.
+      if (turn.current !== target.current && !document.hidden) {
+        frame = requestAnimationFrame(draw);
+      }
     };
 
-    frame = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(frame);
+    const start = () => {
+      if (!frame && !document.hidden) frame = requestAnimationFrame(draw);
+    };
+    const onVisibility = () => {
+      if (document.hidden) {
+        cancelAnimationFrame(frame);
+        frame = 0;
+      } else {
+        start();
+      }
+    };
+
+    kick.current = start;
+    document.addEventListener("visibilitychange", onVisibility);
+    start(); // first layout (and again whenever the stage is re-measured)
+    return () => {
+      kick.current = () => {};
+      document.removeEventListener("visibilitychange", onVisibility);
+      cancelAnimationFrame(frame);
+    };
   }, [metrics, stage.h, count, last, reduced]);
 
   const to = React.useCallback(
     (next: number) => {
       target.current = clamp(next, 0, last + 1);
+      kick.current();
     },
     [last],
   );
@@ -325,8 +355,11 @@ export function WorksWheel({
                   }}
                 >
                   <span className="bg-muted shadow-foreground/12 relative block size-full overflow-hidden rounded-lg shadow-[0_18px_40px_-18px_var(--tw-shadow-color)]">
+                    {/* Callers pass pre-optimised URLs (next/image getImageProps). */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={item.image}
+                      decoding="async"
                       alt={item.title}
                       draggable={false}
                       className="size-full object-cover"

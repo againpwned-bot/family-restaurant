@@ -19,15 +19,26 @@ function detectBrowser(): Browser {
 }
 
 /** Shared state hook: Settings toggle + the prompt card both use it. */
-export function usePushState() {
+export function usePushState({ deferred = false }: { deferred?: boolean } = {}) {
   const [state, setState] = useState<PushState | null>(null);
   useEffect(() => {
     let alive = true;
-    void currentPushState().then((s) => alive && setState(s));
+    const check = () => void currentPushState().then((s) => alive && setState(s));
+    if (!deferred) {
+      check();
+      return () => {
+        alive = false;
+      };
+    }
+    // Secondary UI (the prompt card): wait until the page is idle.
+    const schedule = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500));
+    const cancel = window.cancelIdleCallback ?? window.clearTimeout;
+    const id = schedule(check, { timeout: 4000 });
     return () => {
       alive = false;
+      cancel(id as number);
     };
-  }, []);
+  }, [deferred]);
   return [state, setState] as const;
 }
 

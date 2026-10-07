@@ -5,6 +5,7 @@ import { getTranslations } from "next-intl/server";
 import { LoginForm } from "@/components/auth/login-form";
 import { LogoMark } from "@/components/brand/logo";
 import { LocaleSwitcher } from "@/components/settings/locale-switcher";
+import { WebglBackground } from "@/components/three/webgl-background";
 import { safeNextPath } from "@/lib/auth/roles";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -33,6 +34,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
         className="relative isolate overflow-hidden rounded-b-[2rem] bg-primary px-6 pt-[max(env(safe-area-inset-top),1.5rem)] pb-14 text-primary-foreground sm:px-10 lg:rounded-none lg:px-14 lg:py-14"
       >
         <PlateDecoration />
+        <WebglBackground className="pointer-events-none absolute inset-0 -z-10" opacity={0.42} />
         <div className="relative flex h-full flex-col">
           <div className="flex items-center gap-2.5">
             <LogoMark className="size-9" />

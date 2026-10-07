@@ -3,6 +3,8 @@ import { getFormatter, getTranslations } from "next-intl/server";
 import { MenuHome } from "@/components/client/menu-home";
 import { MENU_SELECT, type MenuDish } from "@/components/client/menu-types";
 import { PageHeader } from "@/components/layout/page-header";
+import { ScrollParallax } from "@/components/motion/scroll-parallax";
+import { WebglBackground } from "@/components/three/webgl-background";
 import { requireProfile } from "@/lib/auth/dal";
 import { KITCHEN_TZ, kitchenDate } from "@/lib/dates";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -25,11 +27,19 @@ export default async function HomePage() {
 
   return (
     <>
-      <PageHeader
-        eyebrow={t("greeting", { name: profile.display_name })}
-        title={t("title")}
-        description={`${date} · ${t("count", { count: dishes.length })}`}
+      <WebglBackground
+        className="pointer-events-none fixed inset-0 -z-10"
+        color="#dc2626"
+        opacity={0.12}
+        additive={false}
       />
+      <ScrollParallax speed={0.3} fade>
+        <PageHeader
+          eyebrow={t("greeting", { name: profile.display_name })}
+          title={t("title")}
+          description={`${date} · ${t("count", { count: dishes.length })}`}
+        />
+      </ScrollParallax>
       <MenuHome initialDishes={dishes} />
     </>
   );

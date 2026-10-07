@@ -5,15 +5,17 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
 
-import { CancelOrderButton, OrderCountdown, STATUS_TONE, useOrderTimes } from "@/components/client/client-order-card";
+import { CancelOrderButton, STATUS_TONE, useOrderTimes } from "@/components/client/client-order-card";
 import { DishPhoto } from "@/components/dish/dish-photo";
+import { StatusFlip } from "@/components/motion/status-flip";
 import { PushPrompt } from "@/components/notifications/push-prompt";
+import { LiveRing, usePrefetchRing3D } from "@/components/orders/live-ring";
 import { StatusSteps } from "@/components/orders/status-steps";
 import { TimerRing } from "@/components/orders/timer-ring";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useRealtime } from "@/hooks/use-realtime";
-import { hasTimer, newer } from "@/lib/orders";
+import { hasTimer, isOpen, newer } from "@/lib/orders";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Order, OrderEvent } from "@/lib/supabase/database.types";
 import { cn } from "@/lib/utils";
@@ -24,16 +26,19 @@ export function OrderStatusView({
   initialEvents,
   people,
   dishAvailable,
+  showPushPrompt,
 }: {
   initialOrder: Order;
   initialEvents: OrderEvent[];
   people: Record<string, string>;
   dishAvailable: boolean;
+  showPushPrompt: boolean;
 }) {
   const t = useTranslations();
   const { time } = useOrderTimes();
   const [order, setOrder] = useState(initialOrder);
   const [events, setEvents] = useState(initialEvents);
+  usePrefetchRing3D();
 
   const resync = useCallback(async () => {
     const supabase = getSupabaseBrowserClient();
@@ -77,7 +82,7 @@ export function OrderStatusView({
         </Link>
       </Button>
 
-      <PushPrompt />
+      {showPushPrompt ? <PushPrompt /> : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
         <section
@@ -88,14 +93,8 @@ export function OrderStatusView({
           )}
         >
           <Badge className={cn("text-sm", STATUS_TONE[order.status])}>{t(`orderStatus.${order.status}`)}</Badge>
-          {hasTimer(order) ? (
-            <OrderCountdown order={order} size={208} large />
-          ) : order.status === "ready" || order.status === "handed_over" ? (
-            <TimerRing size={208} thickness={14} progress={1} tone="success">
-              <CircleCheck className="size-20 text-success" aria-hidden="true" />
-            </TimerRing>
-          ) : (
-            <TimerRing size={208} thickness={14} progress={0} tone="muted">
+          {(() => {
+            const photo = (
               <span className="relative size-24 overflow-hidden rounded-full">
                 <DishPhoto
                   dish={{ name: order.dish_name, photo_path: order.dish_photo_path }}
@@ -103,19 +102,38 @@ export function OrderStatusView({
                   quality={60}
                 />
               </span>
-            </TimerRing>
-          )}
-          <div className="grid gap-1" aria-live="polite">
-            <h1 id="status-title" className="font-heading text-2xl font-bold sm:text-3xl">
-              {t(`orders.status.${order.status}`)}
-            </h1>
-            {hasTimer(order) && order.eta_at ? (
-              <p className="text-muted-foreground">{t("orders.eta", { time: time(order.eta_at) })}</p>
-            ) : null}
-            {order.status === "rejected" && order.reject_reason ? (
-              <p className="text-muted-foreground">{t("orders.reason", { reason: order.reject_reason })}</p>
-            ) : null}
-          </div>
+            );
+            const done = order.status === "ready" || order.status === "handed_over";
+            const check = <CircleCheck className="size-20 text-success" aria-hidden="true" />;
+            const cssRing = done ? (
+              <TimerRing size={208} thickness={14} progress={1} tone="success">
+                {check}
+              </TimerRing>
+            ) : (
+              <TimerRing size={208} thickness={14} progress={0} tone="muted">
+                {photo}
+              </TimerRing>
+            );
+            // Open orders: one ring for the order's whole life (3D on desktop-full).
+            return isOpen(order.status) ? (
+              <LiveRing order={order} label={t("orders.timerLabel")} fallback={cssRing} inner={done ? check : photo} />
+            ) : (
+              cssRing
+            );
+          })()}
+          <StatusFlip statusKey={order.status} className="grid gap-1">
+            <div className="grid gap-1" aria-live="polite">
+              <h1 id="status-title" className="font-heading text-2xl font-bold sm:text-3xl">
+                {t(`orders.status.${order.status}`)}
+              </h1>
+              {hasTimer(order) && order.eta_at ? (
+                <p className="text-muted-foreground">{t("orders.eta", { time: time(order.eta_at) })}</p>
+              ) : null}
+              {order.status === "rejected" && order.reject_reason ? (
+                <p className="text-muted-foreground">{t("orders.reason", { reason: order.reject_reason })}</p>
+              ) : null}
+            </div>
+          </StatusFlip>
           <StatusSteps status={order.status} className="w-full max-w-md" />
           <div className="flex flex-wrap justify-center gap-2">
             <CancelOrderButton order={order} onCancelled={(o) => setOrder((prev) => newer(prev, o))} size="lg" />

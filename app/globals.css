@@ -275,6 +275,21 @@
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* "Reduced" animation tier (chosen in Settings or detected): near-instant
+   transitions, no decorative loops. Functional spinners keep spinning. */
+:root[data-tier="reduced"] *,
+:root[data-tier="reduced"] *::before,
+:root[data-tier="reduced"] *::after {
+  transition-duration: 120ms !important;
+}
+:root[data-tier="reduced"] [data-slot] {
+  animation-duration: 120ms !important;
+}
+:root[data-tier="reduced"] .animate-ping,
+:root[data-tier="reduced"] .animate-pulse {
+  animation: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

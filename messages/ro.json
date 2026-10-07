@@ -174,7 +174,10 @@
     "orderDish": "Comandă {name}",
     "ingredientsPreview": "Cu {list}",
     "flipHint": "Ingrediente",
-    "flipBack": "Înapoi la poză"
+    "flipBack": "Înapoi la poză",
+    "flip": "Vezi ingredientele pentru {name}",
+    "flipBackLabel": "Înapoi la poza pentru {name}",
+    "noIngredientsShort": "Ingrediente netrecute"
   },
   "admin": {
     "greeting": "Bună, {name}!",
@@ -449,7 +452,9 @@
     "ingredientsHint": "pentru o porție",
     "toTaste": "după gust",
     "noIngredients": "Ingredientele nu au fost trecute.",
-    "notToday": "Preparatul nu e în meniul de azi, deci nu poate fi comandat acum."
+    "notToday": "Preparatul nu e în meniul de azi, deci nu poate fi comandat acum.",
+    "view3d": "Farfurie 3D",
+    "viewPhoto": "Poză"
   },
   "orderForm": {
     "title": "Comandă",
@@ -552,5 +557,18 @@
     "promptTitle": "Vrei să afli imediat când e gata?",
     "promptText": "Activează notificările și primești un mesaj chiar dacă aplicația e închisă.",
     "promptDismiss": "Nu acum"
+  },
+  "animations": {
+    "title": "Animații",
+    "description": "Cât de bogate sunt animațiile. „Auto” alege singur după dispozitiv și după cât de fluid merge.",
+    "auto": "Auto",
+    "full": "Complete",
+    "lite": "Ușoare",
+    "reduced": "Reduse",
+    "detected": "Pe acest dispozitiv: {tier}.",
+    "gpu": "Placă video: {renderer}",
+    "downgraded": "Am trecut pe animații reduse pentru fluiditate",
+    "undo": "Anulează",
+    "saved": "Preferința a fost salvată."
   }
 }

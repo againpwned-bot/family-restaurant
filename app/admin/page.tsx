@@ -4,6 +4,7 @@ import { OrdersBoard, type DishInfo } from "@/components/admin/orders/orders-boa
 import { PageHeader } from "@/components/layout/page-header";
 import { requireProfile } from "@/lib/auth/dal";
 import { kitchenDayStart } from "@/lib/dates";
+import { shouldShowPushPrompt } from "@/lib/push-prompt";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export default async function AdminOrdersPage() {
@@ -39,6 +40,7 @@ export default async function AdminOrdersPage() {
         initialOrders={orders.data}
         people={Object.fromEntries((people.data ?? []).map((p) => [p.id, p.display_name]))}
         dishes={dishInfo}
+        showPushPrompt={await shouldShowPushPrompt()}
       />
     </>
   );

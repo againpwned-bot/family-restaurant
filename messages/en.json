@@ -174,7 +174,10 @@
     "orderDish": "Order {name}",
     "ingredientsPreview": "With {list}",
     "flipHint": "Ingredients",
-    "flipBack": "Back to the photo"
+    "flipBack": "Back to the photo",
+    "flip": "See the ingredients of {name}",
+    "flipBackLabel": "Back to the photo of {name}",
+    "noIngredientsShort": "No ingredients listed"
   },
   "admin": {
     "greeting": "Hi, {name}!",
@@ -449,7 +452,9 @@
     "ingredientsHint": "for one portion",
     "toTaste": "to taste",
     "noIngredients": "No ingredients listed.",
-    "notToday": "This dish isn't on today's menu, so it can't be ordered right now."
+    "notToday": "This dish isn't on today's menu, so it can't be ordered right now.",
+    "view3d": "3D plate",
+    "viewPhoto": "Photo"
   },
   "orderForm": {
     "title": "Order",
@@ -552,5 +557,18 @@
     "promptTitle": "Want to know the moment it's ready?",
     "promptText": "Turn on notifications and get a message even when the app is closed.",
     "promptDismiss": "Not now"
+  },
+  "animations": {
+    "title": "Animations",
+    "description": "How rich the animations are. “Auto” picks based on the device and how smoothly it runs.",
+    "auto": "Auto",
+    "full": "Full",
+    "lite": "Light",
+    "reduced": "Reduced",
+    "detected": "On this device: {tier}.",
+    "gpu": "Graphics: {renderer}",
+    "downgraded": "Switched to reduced animations for smoothness",
+    "undo": "Undo",
+    "saved": "Preference saved."
   }
 }

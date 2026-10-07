@@ -1,5 +1,7 @@
 "use client";
 
+import { useSkipEntrance } from "@/hooks/use-entrance";
+
 import { Clock, Plus, Search, X } from "lucide-react";
 import { m } from "motion/react";
 import Link from "next/link";
@@ -26,6 +28,7 @@ export type DishListItem = {
 export function DishList({ dishes }: { dishes: DishListItem[] }) {
   const t = useTranslations();
   const [query, setQuery] = useState("");
+  const skip = useSkipEntrance();
   const deferred = useDeferredValue(query);
   const visible = dishes.filter((d) => matches(deferred, d.name, d.description));
 
@@ -78,7 +81,7 @@ export function DishList({ dishes }: { dishes: DishListItem[] }) {
           {visible.map((dish, i) => (
             <m.li
               key={dish.id}
-              initial={{ opacity: 0, y: 10 }}
+              initial={skip ? false : { opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ type: "spring", stiffness: 180, damping: 24, delay: Math.min(i, 8) * 0.03 }}
             >

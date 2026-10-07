@@ -6,7 +6,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useState } from "react";
 import { toast } from "sonner";
 
-import { AcceptDialog, RejectDialog } from "@/components/admin/orders/order-dialogs";
+import dynamic from "next/dynamic";
 import { DishPhoto } from "@/components/dish/dish-photo";
 import { OrderTimerBar } from "@/components/orders/order-timer";
 import { Button } from "@/components/ui/button";
@@ -14,9 +14,14 @@ import { KITCHEN_TZ } from "@/lib/dates";
 import { dbErrorKey } from "@/lib/errors";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import type { Database, Order } from "@/lib/supabase/database.types";
+import { useSkipEntrance } from "@/hooks/use-entrance";
 import { cn } from "@/lib/utils";
 
 type Rpc = keyof Database["public"]["Functions"];
+
+// Only opened on demand: keep the dialogs (and Radix Dialog) out of the board's first load.
+const AcceptDialog = dynamic(() => import("@/components/admin/orders/order-dialogs").then((m) => m.AcceptDialog));
+const RejectDialog = dynamic(() => import("@/components/admin/orders/order-dialogs").then((m) => m.RejectDialog));
 
 export function OrderCard({
   order,
@@ -40,6 +45,7 @@ export function OrderCard({
   const t = useTranslations();
   const format = useFormatter();
   const [busy, setBusy] = useState<string | null>(null);
+  const skip = useSkipEntrance();
   const [dialog, setDialog] = useState<"accept" | "reject" | null>(null);
   const time = (iso: string) =>
     format.dateTime(new Date(iso), { hour: "2-digit", minute: "2-digit", timeZone: KITCHEN_TZ });
@@ -65,7 +71,7 @@ export function OrderCard({
 
   return (
     <m.article
-      initial={{ opacity: 0, y: 12 }}
+      initial={skip ? false : { opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ type: "spring", stiffness: 180, damping: 24 }}
       aria-labelledby={`order-${id}-title`}

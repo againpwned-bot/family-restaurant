@@ -2,6 +2,7 @@
 
 import { Clock, Disc3, LayoutGrid, Search, Soup, X } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { getImageProps } from "next/image";
 import { useTranslations } from "next-intl";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -9,6 +10,7 @@ import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, us
 import { DishCard } from "@/components/client/dish-card";
 import { MENU_SELECT, type MenuDish } from "@/components/client/menu-types";
 import { placeholderDataUrl } from "@/components/dish/dish-photo";
+import { useAnimation } from "@/components/providers/animation-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
@@ -55,9 +57,15 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
   const [query, setQuery] = useState("");
   const [quick, setQuick] = useState(false);
   const deferredQuery = useDeferredValue(query);
-  const view = useSyncExternalStore(subscribeView, readView, () => "wheel" as View);
+  const storedView = useSyncExternalStore(subscribeView, readView, () => "wheel" as View);
+  const { tier } = useAnimation();
+  // Reduced animations: no 3D at all, so the wheel gives way to the list.
+  const view: View = tier === "reduced" ? "list" : storedView;
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wheelBox = useRef<HTMLDivElement>(null);
+  const router = useRouter();
+  const pointerStart = useRef<{ x: number; y: number } | null>(null);
+  const dragged = useRef(false);
   const [front, setFront] = useState(0);
 
   const refetch = useCallback(async () => {
@@ -181,6 +189,7 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
           <div
             role="radiogroup"
             aria-label={t("home.viewLabel")}
+            hidden={tier === "reduced"}
             className="flex shrink-0 rounded-full border border-border bg-card p-1"
           >
             {(["wheel", "list"] as const).map((v) => (
@@ -215,13 +224,30 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
         <div className="grid gap-2">
           <div
             ref={wheelBox}
+            // The wheel's cards are plain <a>s: turn their clicks into client-side
+            // navigation (opens the dish over the menu) and ignore the click that
+            // ends a drag.
+            onPointerDownCapture={(e) => {
+              pointerStart.current = { x: e.clientX, y: e.clientY };
+              dragged.current = false;
+            }}
+            onPointerMoveCapture={(e) => {
+              const start = pointerStart.current;
+              if (start && Math.hypot(e.clientX - start.x, e.clientY - start.y) > 6) dragged.current = true;
+            }}
+            onClickCapture={(e) => {
+              const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="/dish/"]');
+              if (!link || e.metaKey || e.ctrlKey || e.shiftKey) return; // new tab: browser default
+              e.preventDefault();
+              if (!dragged.current) router.push(link.getAttribute("href")!);
+            }}
             className="relative h-[min(50svh,720px)] min-h-[20rem] overflow-hidden rounded-3xl border border-border bg-card font-heading shadow-sm sm:h-[min(68svh,720px)] sm:min-h-[26rem]"
           >
             <WorksWheel
               items={wheelItems}
               label={t("home.wheelLabel")}
               action={t("home.wheelAction")}
-              className="bg-card text-foreground [&_ol]:font-sans max-sm:[&>div:nth-child(3)]:hidden max-sm:[&>ol]:hidden"
+              className="bg-card text-foreground [&_ol]:font-sans [&_ol_button]:min-h-6 [&_ol_button]:px-1 max-sm:[&>div:nth-child(3)]:hidden max-sm:[&>ol]:hidden"
             />
           </div>
           {visible[Math.min(front, visible.length - 1)] ? (

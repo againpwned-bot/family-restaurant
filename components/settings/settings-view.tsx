@@ -1,4 +1,4 @@
-import { BellRing, KeyRound, Languages, Palette, UserRound } from "lucide-react";
+import { BellRing, KeyRound, Languages, Palette, Sparkles, UserRound } from "lucide-react";
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
@@ -6,7 +6,7 @@ import type { ReactNode } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { PushToggle } from "@/components/notifications/push-toggle";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
-import { LanguageSetting, ThemeSetting } from "@/components/settings/preference-switchers";
+import { AnimationSetting, LanguageSetting, ThemeSetting } from "@/components/settings/preference-switchers";
 import type { Profile } from "@/lib/supabase/database.types";
 import { THEME_COOKIE, resolveTheme } from "@/lib/theme";
 
@@ -39,6 +39,10 @@ export async function SettingsView({ profile }: { profile: Profile }) {
 
           <Section icon={<Palette />} title={t("settings.theme.title")} description={t("settings.theme.description")}>
             <ThemeSetting current={theme} />
+          </Section>
+
+          <Section icon={<Sparkles />} title={t("animations.title")} description={t("animations.description")}>
+            <AnimationSetting />
           </Section>
         </div>
 
