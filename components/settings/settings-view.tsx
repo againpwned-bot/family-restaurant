@@ -1,9 +1,10 @@
-import { KeyRound, Languages, Palette, UserRound } from "lucide-react";
+import { BellRing, KeyRound, Languages, Palette, UserRound } from "lucide-react";
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
 
 import { PageHeader } from "@/components/layout/page-header";
+import { PushToggle } from "@/components/notifications/push-toggle";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { LanguageSetting, ThemeSetting } from "@/components/settings/preference-switchers";
 import type { Profile } from "@/lib/supabase/database.types";
@@ -41,13 +42,18 @@ export async function SettingsView({ profile }: { profile: Profile }) {
           </Section>
         </div>
 
-        <Section
-          icon={<KeyRound />}
-          title={t("settings.password.title")}
-          description={t("settings.password.description")}
-        >
-          <ChangePasswordForm username={profile.username} />
-        </Section>
+        <div className="grid gap-4 lg:gap-6">
+          <Section icon={<BellRing />} title={t("push.title")} description={t("push.description")}>
+            <PushToggle />
+          </Section>
+          <Section
+            icon={<KeyRound />}
+            title={t("settings.password.title")}
+            description={t("settings.password.description")}
+          >
+            <ChangePasswordForm username={profile.username} />
+          </Section>
+        </div>
       </div>
     </>
   );

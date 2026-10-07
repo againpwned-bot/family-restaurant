@@ -7,6 +7,7 @@ import { Wordmark } from "@/components/brand/logo";
 import { ClientBottomNav, HeaderNav } from "@/components/layout/nav-links";
 import { SkipLink } from "@/components/layout/skip-link";
 import { NotificationCenter } from "@/components/notifications/notification-center";
+import { ServiceWorker } from "@/components/providers/service-worker";
 import { UserMenu, type ShellUser } from "@/components/layout/user-menu";
 import { Button } from "@/components/ui/button";
 
@@ -54,6 +55,7 @@ export async function ClientShell({ user, children }: { user: ShellUser & { id: 
 
       <ClientBottomNav role={user.role} />
       <NotificationCenter userId={user.id} />
+      <ServiceWorker />
     </div>
   );
 }

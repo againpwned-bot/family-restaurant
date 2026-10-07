@@ -6,10 +6,12 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition, type ReactNode } from "react";
 
 import { logout } from "@/app/login/actions";
+import { forgetThisDevice } from "@/lib/push";
 import { Wordmark } from "@/components/brand/logo";
 import { AdminBottomNav, SidebarNav } from "@/components/layout/nav-links";
 import { UserMenu, initials, type ShellUser } from "@/components/layout/user-menu";
 import { NotificationCenter } from "@/components/notifications/notification-center";
+import { ServiceWorker } from "@/components/providers/service-worker";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -70,7 +72,12 @@ export function AdminShell({
               size="icon-sm"
               aria-label={t("nav.logout")}
               disabled={loggingOut}
-              onClick={() => startLogout(() => logout())}
+              onClick={() =>
+                startLogout(async () => {
+                  await forgetThisDevice();
+                  await logout();
+                })
+              }
             >
               <LogOut />
             </Button>
@@ -103,6 +110,7 @@ export function AdminShell({
 
       <AdminBottomNav role={user.role} onMore={() => setMoreOpen(true)} />
       <NotificationCenter userId={user.id} />
+      <ServiceWorker />
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent side="bottom" className="rounded-t-3xl pb-[max(env(safe-area-inset-bottom),1rem)]">
@@ -126,7 +134,12 @@ export function AdminShell({
             <button
               type="button"
               disabled={loggingOut}
-              onClick={() => startLogout(() => logout())}
+              onClick={() =>
+                startLogout(async () => {
+                  await forgetThisDevice();
+                  await logout();
+                })
+              }
               className="hover-overlay flex h-12 items-center gap-3 rounded-xl px-3 text-base font-semibold text-destructive outline-none focus-visible:ring-3 focus-visible:ring-ring/50 [&_svg]:size-5"
             >
               <LogOut aria-hidden="true" />

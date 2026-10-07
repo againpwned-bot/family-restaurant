@@ -7,7 +7,7 @@ export type Json = string | number | boolean | null | { [key: string]: Json | un
 export type AppRole = "owner" | "admin" | "client";
 export type OrderStatus = "received" | "accepted" | "cooking" | "ready" | "handed_over" | "rejected" | "cancelled";
 export type NotificationType =
-  "order_new" | "order_cancelled" | "order_accepted" | "order_rejected" | "order_ready" | "order_extended";
+  "order_new" | "order_cancelled" | "order_accepted" | "order_rejected" | "order_ready" | "order_extended" | "test";
 export type AnimationPref = "auto" | "full" | "lite" | "reduced";
 export type AnimationTier = "full" | "lite" | "reduced";
 export type Locale = "ro" | "en";
@@ -327,6 +327,7 @@ export type Database = {
         Returns: undefined;
       };
       reset_shopping_checks: { Args: never; Returns: undefined };
+      send_test_notification: { Args: never; Returns: undefined };
       register_push_subscription: {
         Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_user_agent?: string | null };
         Returns: undefined;

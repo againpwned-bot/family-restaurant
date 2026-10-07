@@ -33,8 +33,9 @@ export function done(name: string): never {
   process.exit(failures ? 1 : 0);
 }
 
-export async function browser(): Promise<Browser> {
-  return chromium.launch();
+/** `full` uses the complete Chromium build (new headless), needed for notifications. */
+export async function browser(options: { full?: boolean } = {}): Promise<Browser> {
+  return chromium.launch(options.full ? { channel: "chromium" } : {});
 }
 
 export async function context(b: Browser, kind: "phone" | "desktop", extra: Parameters<Browser["newContext"]>[0] = {}) {

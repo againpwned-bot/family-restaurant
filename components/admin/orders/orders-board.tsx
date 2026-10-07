@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from "react";
 
 import { OrderCard } from "@/components/admin/orders/order-card";
+import { PushPrompt } from "@/components/notifications/push-prompt";
 import { Button } from "@/components/ui/button";
 import { useRealtime } from "@/hooks/use-realtime";
 import { kitchenDayStart } from "@/lib/dates";
@@ -133,6 +134,8 @@ export function OrdersBoard({
         <LiveBadge live={status === "live"} />
         <SoundToggle />
       </div>
+
+      <PushPrompt />
 
       {total === 0 ? (
         <p className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center text-muted-foreground">

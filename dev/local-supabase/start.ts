@@ -10,6 +10,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { PUBLISHABLE_KEY, SECRET_KEY } from "./jwt";
+import { localVapidKeys } from "./vapid";
 import { EMULATOR_URL, startEmulator } from "./server";
 
 const env = {
@@ -18,6 +19,7 @@ const env = {
   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: PUBLISHABLE_KEY,
   SUPABASE_SECRET_KEY: SECRET_KEY,
   LOCAL_SUPABASE: "1",
+  NEXT_PUBLIC_VAPID_PUBLIC_KEY: localVapidKeys(null).publicKey,
 };
 
 function run(command: string, args: string[]) {

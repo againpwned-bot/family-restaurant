@@ -25,6 +25,7 @@ const ICONS: Record<NotificationType, typeof BellRing> = {
   order_rejected: CircleX,
   order_ready: CircleCheck,
   order_extended: Timer,
+  test: BellRing,
 };
 
 /**

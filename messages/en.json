@@ -1,7 +1,8 @@
 {
   "metadata": {
     "title": "Home Menu",
-    "description": "The family kitchen: today's menu, real-time orders and a notification when the food is ready."
+    "description": "The family kitchen: today's menu, real-time orders and a notification when the food is ready.",
+    "shortName": "Menu"
   },
   "common": {
     "appName": "Home Menu",
@@ -434,6 +435,10 @@
     "order_extended": {
       "title": "A little longer",
       "body": "{dish}: {minutes} more min, ready around {time}."
+    },
+    "test": {
+      "title": "Notifications work!",
+      "body": "This is how you'll know the food is ready."
     }
   },
   "dish": {
@@ -523,5 +528,29 @@
       "cancelled": "Cancelled"
     },
     "someone": "the cook"
+  },
+  "push": {
+    "title": "Notifications",
+    "description": "Get a notification on this device when something happens with the orders.",
+    "enable": "Turn on notifications",
+    "enabling": "Turning on…",
+    "disable": "Turn off on this device",
+    "enabled": "Notifications are on for this device.",
+    "enabledToast": "Done! You'll get notifications here.",
+    "disabledToast": "Notifications were turned off on this device.",
+    "test": "Send a test notification",
+    "testSent": "A test notification was sent.",
+    "unsupported": "This browser can't receive push notifications. Use Chrome or Edge on a computer, or Chrome on Android. While the page is open you still get in-page alerts with sound.",
+    "notConfigured": "Push notifications aren't set up on the server yet. While the page is open you get in-page alerts with sound.",
+    "deniedTitle": "Notifications are blocked for this site",
+    "deniedText": "The browser blocked notifications. Here's how to turn them back on:",
+    "deniedChrome": "Chrome / Edge on a computer: click the icon left of the address (padlock or settings) → Notifications → Allow, then reload the page.",
+    "deniedFirefox": "Firefox: click the icon left of the address → next to Notifications click “×” (clear the block), then reload the page and press the button again.",
+    "deniedAndroid": "Chrome on Android: tap the three dots → Settings → Site settings → Notifications → pick this site → Allow. If you installed the app on the home screen: phone Settings → Apps → Home Menu → Notifications.",
+    "deniedFallback": "Until then, while the page is open, you'll see in-page alerts with sound.",
+    "error": "Notifications could not be turned on. Please try again.",
+    "promptTitle": "Want to know the moment it's ready?",
+    "promptText": "Turn on notifications and get a message even when the app is closed.",
+    "promptDismiss": "Not now"
   }
 }

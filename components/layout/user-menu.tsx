@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useTransition } from "react";
 
 import { logout } from "@/app/login/actions";
+import { forgetThisDevice } from "@/lib/push";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
@@ -80,7 +81,10 @@ export function UserMenu({
           disabled={pending}
           onSelect={(event) => {
             event.preventDefault();
-            startTransition(() => logout());
+            startTransition(async () => {
+              await forgetThisDevice();
+              await logout();
+            });
           }}
         >
           <LogOut aria-hidden="true" />

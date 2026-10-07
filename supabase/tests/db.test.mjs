@@ -294,5 +294,25 @@ r = await db.query(`select count(*)::int as n from public.shopping_checks`);
 check("ticks cleared", r.rows[0].n === 0);
 await expectErr("anon cannot call admin helpers", "anon", `select public.clear_today_menu()`, "permission denied");
 
+console.log("\n== push webhook");
+const calls = [];
+await db.listen("_local_http", (payload) => calls.push(JSON.parse(payload)));
+await db.query(`insert into vault.secrets (name, secret) values ('project_url', 'https://abc.supabase.co/'), ('push_webhook_secret', 's3cret')`);
+await db.query(`update public.dishes set available_on = public.today_local(), archived_at = null where id = $1`, [d1]);
+const pushOrder = (await as("c1", `select * from public.place_order($1, 1)`, [d1])).rows[0];
+await new Promise((r) => setTimeout(r, 50));
+check("one webhook per staff recipient", calls.length === 2, JSON.stringify(calls.map((c) => c.url)));
+check("webhook goes to the send-push function", calls[0]?.url === "https://abc.supabase.co/functions/v1/send-push");
+check("webhook carries the shared secret", calls[0]?.headers?.Authorization === "Bearer s3cret");
+check("webhook body is the notification row", calls[0]?.body?.record?.type === "order_new" && calls[0]?.body?.record?.order_id === pushOrder.id);
+await expectOk("anyone signed in can send themselves a test", "c2", `select public.send_test_notification()`);
+r = await db.query(`select count(*)::int as n from public.notifications where type = 'test' and recipient_id = $1`, [ids.c2]);
+check("test notification created", r.rows[0].n === 1);
+await db.query(`delete from vault.secrets`);
+calls.length = 0;
+await as("c1", `select * from public.place_order($1, 1)`, [d1]);
+await new Promise((r) => setTimeout(r, 50));
+check("without Vault secrets the trigger stays quiet (in-app only)", calls.length === 0);
+
 console.log(failures ? `\n${failures} FAILURE(S)` : "\nALL CHECKS PASSED");
 process.exit(failures ? 1 : 0);

@@ -125,17 +125,15 @@ async function main() {
       .single();
     if (error || !row) fail(`Could not add ${dish.name}: ${error?.message}`);
 
-    const { error: ingredientsError } = await supabase
-      .from("dish_ingredients")
-      .insert(
-        dish.ingredients.map(([name, quantity, unit], position) => ({
-          dish_id: row.id,
-          name,
-          quantity,
-          unit,
-          position,
-        })),
-      );
+    const { error: ingredientsError } = await supabase.from("dish_ingredients").insert(
+      dish.ingredients.map(([name, quantity, unit], position) => ({
+        dish_id: row.id,
+        name,
+        quantity,
+        unit,
+        position,
+      })),
+    );
     if (ingredientsError) fail(`Could not add the ingredients of ${dish.name}: ${ingredientsError.message}`);
     added++;
     console.log(`✓ added    ${dish.name}`);

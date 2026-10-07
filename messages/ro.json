@@ -1,7 +1,8 @@
 {
   "metadata": {
     "title": "Meniul de acasă",
-    "description": "Bucătăria familiei: meniul zilei, comenzi în timp real și notificări când mâncarea e gata."
+    "description": "Bucătăria familiei: meniul zilei, comenzi în timp real și notificări când mâncarea e gata.",
+    "shortName": "Meniu"
   },
   "common": {
     "appName": "Meniul de acasă",
@@ -434,6 +435,10 @@
     "order_extended": {
       "title": "Mai durează puțin",
       "body": "{dish}: încă {minutes} min, gata pe la {time}."
+    },
+    "test": {
+      "title": "Notificările funcționează!",
+      "body": "Așa vei afla când e gata mâncarea."
     }
   },
   "dish": {
@@ -523,5 +528,29 @@
       "cancelled": "Anulată"
     },
     "someone": "bucătar"
+  },
+  "push": {
+    "title": "Notificări",
+    "description": "Primește o notificare pe acest dispozitiv când se întâmplă ceva cu comenzile.",
+    "enable": "Activează notificările",
+    "enabling": "Se activează…",
+    "disable": "Dezactivează pe acest dispozitiv",
+    "enabled": "Notificările sunt active pe acest dispozitiv.",
+    "enabledToast": "Gata! Vei primi notificări aici.",
+    "disabledToast": "Notificările au fost dezactivate pe acest dispozitiv.",
+    "test": "Trimite o notificare de test",
+    "testSent": "Am trimis o notificare de test.",
+    "unsupported": "Browserul acesta nu poate primi notificări push. Folosește Chrome sau Edge pe calculator, ori Chrome pe Android. Cât timp pagina e deschisă, primești oricum anunțurile în pagină, cu sunet.",
+    "notConfigured": "Notificările push nu sunt configurate încă pe server. Cât timp pagina e deschisă, primești anunțurile în pagină, cu sunet.",
+    "deniedTitle": "Notificările sunt blocate pentru acest site",
+    "deniedText": "Browserul a blocat notificările. Le poți porni din nou așa:",
+    "deniedChrome": "Chrome / Edge pe calculator: apasă pe iconița din stânga adresei (lacăt sau setări) → Notificări → Permite, apoi reîncarcă pagina.",
+    "deniedFirefox": "Firefox: apasă pe iconița din stânga adresei → la Notificări apasă pe „×” (șterge blocarea), apoi reîncarcă pagina și apasă din nou pe buton.",
+    "deniedAndroid": "Chrome pe Android: atinge cele trei puncte → Setări → Setări site → Notificări → alege acest site → Permite. Dacă ai instalat aplicația pe ecranul principal: Setări telefon → Aplicații → Meniul de acasă → Notificări.",
+    "deniedFallback": "Până atunci, cât timp pagina e deschisă, vei vedea anunțurile în pagină, cu sunet.",
+    "error": "Notificările nu au putut fi activate. Încearcă din nou.",
+    "promptTitle": "Vrei să afli imediat când e gata?",
+    "promptText": "Activează notificările și primești un mesaj chiar dacă aplicația e închisă.",
+    "promptDismiss": "Nu acum"
   }
 }

@@ -7,6 +7,7 @@ import { useCallback, useState } from "react";
 
 import { CancelOrderButton, OrderCountdown, STATUS_TONE, useOrderTimes } from "@/components/client/client-order-card";
 import { DishPhoto } from "@/components/dish/dish-photo";
+import { PushPrompt } from "@/components/notifications/push-prompt";
 import { StatusSteps } from "@/components/orders/status-steps";
 import { TimerRing } from "@/components/orders/timer-ring";
 import { Badge } from "@/components/ui/badge";
@@ -75,6 +76,8 @@ export function OrderStatusView({
           {t("orders.back")}
         </Link>
       </Button>
+
+      <PushPrompt />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
         <section

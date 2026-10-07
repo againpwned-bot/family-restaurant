@@ -3,6 +3,7 @@ import { getTranslations } from "next-intl/server";
 
 import { MyOrders } from "@/components/client/my-orders";
 import { PageHeader } from "@/components/layout/page-header";
+import { PushPrompt } from "@/components/notifications/push-prompt";
 import { requireProfile } from "@/lib/auth/dal";
 import { CLOSED_STATUSES, HISTORY_PAGE, OPEN_STATUSES } from "@/lib/orders";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -37,6 +38,9 @@ export default async function MyOrdersPage() {
   return (
     <>
       <PageHeader title={t("title")} description={t("description")} />
+      <div className="mb-6">
+        <PushPrompt />
+      </div>
       <MyOrders userId={profile.id} initialActive={active.data} initialHistory={history.data ?? []} />
     </>
   );

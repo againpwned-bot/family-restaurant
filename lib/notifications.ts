@@ -19,6 +19,7 @@ export const STAFF_TYPES: NotificationType[] = ["order_new", "order_cancelled"];
 
 export function notificationHref(n: Pick<AppNotification, "type" | "order_id">): string {
   if (STAFF_TYPES.includes(n.type)) return "/admin";
+  if (n.type === "test") return "/";
   return n.order_id ? `/orders/${n.order_id}` : "/orders";
 }
 
