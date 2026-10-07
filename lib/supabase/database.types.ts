@@ -300,6 +300,33 @@ export type Database = {
       extend_order_timer: { Args: { p_order_id: string; p_minutes: number }; Returns: OrderRow };
       mark_order_ready: { Args: { p_order_id: string }; Returns: OrderRow };
       hand_over_order: { Args: { p_order_id: string }; Returns: OrderRow };
+      save_dish: {
+        Args: {
+          p_id: string | null;
+          p_name: string;
+          p_description: string;
+          p_cook_minutes: number;
+          p_available_today: boolean;
+          p_photo_path: string | null;
+          p_photo_width: number | null;
+          p_photo_height: number | null;
+          p_photo_blur: string | null;
+          p_ingredients: Json;
+        };
+        Returns: Database["public"]["Tables"]["dishes"]["Row"];
+      };
+      delete_dish: { Args: { p_id: string }; Returns: Json };
+      set_dish_available_today: {
+        Args: { p_dish_id: string; p_available: boolean };
+        Returns: Database["public"]["Tables"]["dishes"]["Row"];
+      };
+      copy_yesterday_menu: { Args: never; Returns: number };
+      clear_today_menu: { Args: never; Returns: number };
+      set_shopping_check: {
+        Args: { p_item_key: string; p_checked: boolean; p_quantity?: number | null };
+        Returns: undefined;
+      };
+      reset_shopping_checks: { Args: never; Returns: undefined };
       register_push_subscription: {
         Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_user_agent?: string | null };
         Returns: undefined;

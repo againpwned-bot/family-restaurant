@@ -7,7 +7,7 @@ export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
 
   return (
     <AdminShell
-      user={{ displayName: profile.display_name, username: profile.username, role: profile.role }}
+      user={{ id: profile.id, displayName: profile.display_name, username: profile.username, role: profile.role }}
       skipLink={<SkipLink />}
     >
       {children}

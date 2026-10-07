@@ -55,3 +55,9 @@ supabase/.branches
 
 # python caches (uipro skill scripts)
 __pycache__/
+
+# local Supabase emulator data
+dev/local-supabase/.data/
+
+# e2e screenshots
+tests/e2e/screenshots/

@@ -5,7 +5,9 @@ export default async function ClientLayout({ children }: LayoutProps<"/">) {
   const profile = await requireProfile({ roles: ["owner", "client"] });
 
   return (
-    <ClientShell user={{ displayName: profile.display_name, username: profile.username, role: profile.role }}>
+    <ClientShell
+      user={{ id: profile.id, displayName: profile.display_name, username: profile.username, role: profile.role }}
+    >
       {children}
     </ClientShell>
   );

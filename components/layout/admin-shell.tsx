@@ -9,6 +9,7 @@ import { logout } from "@/app/login/actions";
 import { Wordmark } from "@/components/brand/logo";
 import { AdminBottomNav, SidebarNav } from "@/components/layout/nav-links";
 import { UserMenu, initials, type ShellUser } from "@/components/layout/user-menu";
+import { NotificationCenter } from "@/components/notifications/notification-center";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
@@ -22,7 +23,7 @@ export function AdminShell({
   skipLink,
   children,
 }: {
-  user: ShellUser;
+  user: ShellUser & { id: string };
   skipLink: ReactNode;
   children: ReactNode;
 }) {
@@ -101,6 +102,7 @@ export function AdminShell({
       </div>
 
       <AdminBottomNav role={user.role} onMore={() => setMoreOpen(true)} />
+      <NotificationCenter userId={user.id} />
 
       <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
         <SheetContent side="bottom" className="rounded-t-3xl pb-[max(env(safe-area-inset-bottom),1rem)]">

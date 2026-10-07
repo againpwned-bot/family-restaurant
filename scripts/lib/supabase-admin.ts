@@ -2,6 +2,7 @@
 // service-role client. Runs locally only, never in the browser.
 
 import { createClient } from "@supabase/supabase-js";
+import WebSocket from "ws";
 
 import type { Database } from "../../lib/supabase/database.types";
 
@@ -25,6 +26,8 @@ export function adminClient() {
   }
   return createClient<Database>(url, secret, {
     auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+    // Node 20 has no global WebSocket; supabase-js refuses to start without one.
+    realtime: { transport: WebSocket as unknown as typeof globalThis.WebSocket },
   });
 }
 

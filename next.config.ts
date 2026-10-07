@@ -4,13 +4,15 @@ import createNextIntlPlugin from "next-intl/plugin";
 const withNextIntl = createNextIntlPlugin("./i18n/request.ts");
 
 // Dish photos are served from the public Supabase Storage bucket.
-const supabaseHost = (() => {
+const supabase = (() => {
   try {
-    return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").hostname;
+    return new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
   } catch {
     return null;
   }
 })();
+// The local emulator (npm run dev:local) serves photos from 127.0.0.1.
+const isLocalSupabase = !!supabase && ["127.0.0.1", "localhost"].includes(supabase.hostname);
 
 const nextConfig: NextConfig = {
   // Every page here is private and per-user (session cookie + realtime data),
@@ -30,12 +32,15 @@ const nextConfig: NextConfig = {
   },
   images: {
     formats: ["image/avif", "image/webp"],
+    qualities: [60, 75],
     minimumCacheTTL: 60 * 60 * 24 * 30,
-    remotePatterns: supabaseHost
+    dangerouslyAllowLocalIP: isLocalSupabase,
+    remotePatterns: supabase
       ? [
           {
-            protocol: "https",
-            hostname: supabaseHost,
+            protocol: supabase.protocol === "http:" ? "http" : "https",
+            hostname: supabase.hostname,
+            port: supabase.port,
             pathname: "/storage/v1/object/public/**",
           },
         ]

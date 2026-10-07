@@ -10,11 +10,15 @@
     "typecheck": "tsc --noEmit",
     "check:i18n": "tsx scripts/check-i18n.ts",
     "test:db": "node supabase/tests/db.test.mjs",
-    "check": "npm run typecheck && npm run lint && npm run check:i18n && npm run test:db",
+    "check": "npm run typecheck && npm run lint && npm run check:i18n && npm run test:unit && npm run test:db",
     "seed:users": "tsx scripts/seed-users.ts",
     "seed:dishes": "tsx scripts/seed-dishes.ts",
     "db:push": "supabase db push",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "dev:local": "tsx dev/local-supabase/start.ts",
+    "emulator": "tsx dev/local-supabase/start.ts --api",
+    "test:unit": "tsx --test tests/*.test.ts",
+    "test:e2e": "tsx tests/e2e/admin.e2e.mts"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.9",
@@ -45,11 +49,14 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/three": "^0.186.0",
+    "@types/ws": "^8.18.2",
     "eslint": "^9",
     "eslint-config-next": "16.4.0",
+    "playwright-core": "^1.63.0",
     "supabase": "^2.120.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
-    "typescript": "^5"
+    "typescript": "^5",
+    "ws": "^8.22.0"
   }
 }

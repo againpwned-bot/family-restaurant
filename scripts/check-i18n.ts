@@ -30,11 +30,9 @@ const problems: string[] = [];
 for (const key of roKeys.keys()) if (!enKeys.has(key)) problems.push(`missing in en.json: ${key}`);
 for (const key of enKeys.keys()) if (!roKeys.has(key)) problems.push(`missing in ro.json: ${key}`);
 
+// ICU argument names only ({count, plural, ...} / {name}), not words inside plural branches.
 const placeholders = (s: string) =>
-  [...s.matchAll(/\{(\w+)/g)]
-    .map((m) => m[1])
-    .sort()
-    .join(",");
+  [...new Set([...s.matchAll(/\{\s*(\w+)\s*(?=[,}])/g)].map((m) => m[1]))].sort().join(",");
 for (const [key, value] of roKeys) {
   if (/[şţŞŢ]/.test(value)) problems.push(`cedilla instead of comma-below in ro.json: ${key}`);
   const other = enKeys.get(key);

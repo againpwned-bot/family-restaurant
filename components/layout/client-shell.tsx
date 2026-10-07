@@ -6,11 +6,12 @@ import type { ReactNode } from "react";
 import { Wordmark } from "@/components/brand/logo";
 import { ClientBottomNav, HeaderNav } from "@/components/layout/nav-links";
 import { SkipLink } from "@/components/layout/skip-link";
+import { NotificationCenter } from "@/components/notifications/notification-center";
 import { UserMenu, type ShellUser } from "@/components/layout/user-menu";
 import { Button } from "@/components/ui/button";
 
 /** Client side: sticky header (desktop nav inside), bottom bar on phones. */
-export async function ClientShell({ user, children }: { user: ShellUser; children: ReactNode }) {
+export async function ClientShell({ user, children }: { user: ShellUser & { id: string }; children: ReactNode }) {
   const t = await getTranslations();
   const isOwner = user.role === "owner";
 
@@ -52,6 +53,7 @@ export async function ClientShell({ user, children }: { user: ShellUser; childre
       </main>
 
       <ClientBottomNav role={user.role} />
+      <NotificationCenter userId={user.id} />
     </div>
   );
 }

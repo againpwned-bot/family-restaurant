@@ -10,30 +10,8 @@ const root = process.cwd();
 const migDir = path.join(root, "supabase/migrations");
 const db = new PGlite();
 
-const stub = `
-create role anon nologin;
-create role authenticated nologin;
-create role service_role nologin bypassrls;
-grant anon, authenticated, service_role to postgres;
-create schema auth;
-create table auth.users (id uuid primary key, email text);
-create function auth.uid() returns uuid language sql stable as $$
-  select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
-grant usage on schema auth to anon, authenticated, service_role;
-grant execute on function auth.uid() to anon, authenticated;
-create schema storage;
-create table storage.buckets (id text primary key, name text, public bool, file_size_limit bigint, allowed_mime_types text[]);
-create table storage.objects (id uuid default gen_random_uuid() primary key, bucket_id text, name text);
-alter table storage.objects enable row level security;
-grant usage on schema storage to authenticated;
-grant all on storage.objects to authenticated;
-create publication supabase_realtime;
-grant usage on schema public to anon, authenticated, service_role;
-alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
-alter default privileges in schema public grant all on functions to anon, authenticated, service_role;
-alter default privileges in schema public grant all on sequences to anon, authenticated, service_role;
-`;
-await db.exec(stub);
+// Same Supabase stand-ins as the local emulator.
+await db.exec(fs.readFileSync(path.join(root, "dev/local-supabase/bootstrap.sql"), "utf8"));
 
 for (const f of fs.readdirSync(migDir).sort()) {
   if (!f.endsWith(".sql")) continue;
@@ -285,6 +263,36 @@ await expectOk(
   `insert into storage.objects (bucket_id, name) values ('dish-photos','x.webp')`,
 );
 await expectErr("anon cannot call RPC", "anon", `select public.place_order($1, 1)`, "permission denied", [d1]);
+
+console.log("\n== admin helpers");
+const ingredients = JSON.stringify([{ name: " Varză ", quantity: 1, unit: "buc" }, { name: "Sare", quantity: null, unit: "" }]);
+await expectErr("client cannot save_dish", "c1", `select * from public.save_dish(null, 'X', '', 10, true, null, null, null, null, $1::jsonb)`, "forbidden", [ingredients]);
+const nd = (await expectOk("admin creates dish with ingredients", "admin",
+  `select * from public.save_dish(null, ' Ciorbă de burtă ', 'Bună', 50, true, 'dishes/a.webp', 1600, 1200, null, $1::jsonb)`, [ingredients])).rows[0];
+check("name trimmed, on today's menu", nd.name === "Ciorbă de burtă" && nd.available_on !== null);
+r = await db.query(`select name, quantity, position from public.dish_ingredients where dish_id = $1 order by position`, [nd.id]);
+check("ingredients saved in order, trimmed, null qty kept", r.rows.length === 2 && r.rows[0].name === "Varză" && r.rows[1].quantity === null, JSON.stringify(r.rows));
+await expectOk("admin updates dish, replaces ingredients, takes it off today's menu", "admin",
+  `select * from public.save_dish($1, 'Ciorbă de burtă', 'Bună', 55, false, null, null, null, null, '[{"name":"Burtă","quantity":200,"unit":"g"}]'::jsonb)`, [nd.id]);
+r = await db.query(`select d.available_on, d.cook_minutes, (select count(*)::int from public.dish_ingredients i where i.dish_id = d.id) as n from public.dishes d where id = $1`, [nd.id]);
+check("update applied", r.rows[0].available_on === null && r.rows[0].cook_minutes === 55 && r.rows[0].n === 1, JSON.stringify(r.rows));
+await expectOk("toggle available today on", "admin", `select * from public.set_dish_available_today($1, true)`, [nd.id]);
+await expectErr("client cannot toggle menu", "c1", `select * from public.set_dish_available_today($1, false)`, "forbidden", [nd.id]);
+await db.query(`update public.dishes set available_on = public.today_local() - 1 where id = $1`, [d2]);
+r = await as("admin", `select public.copy_yesterday_menu() as n`);
+check("copy yesterday's menu", r.rows[0].n === 1, JSON.stringify(r.rows));
+r = await as("admin", `select public.delete_dish($1) as res`, [d1]);
+check("ordered dish is archived, not deleted", r.rows[0].res.mode === "archived", JSON.stringify(r.rows));
+r = await as("c1", `select count(*)::int as n from public.orders where dish_id = $1`, [d1]);
+check("order history still linked to archived dish", r.rows[0].n >= 1);
+r = await as("admin", `select public.delete_dish($1) as res`, [nd.id]);
+check("unordered dish is deleted and returns its photo", r.rows[0].res.mode === "deleted", JSON.stringify(r.rows));
+await expectOk("admin ticks via set_shopping_check", "admin", `select public.set_shopping_check('burtă|g', true, 200)`);
+await expectErr("client cannot tick via function", "c1", `select public.set_shopping_check('x', true)`, "forbidden");
+await expectOk("admin resets ticks", "admin", `select public.reset_shopping_checks()`);
+r = await db.query(`select count(*)::int as n from public.shopping_checks`);
+check("ticks cleared", r.rows[0].n === 0);
+await expectErr("anon cannot call admin helpers", "anon", `select public.clear_today_menu()`, "permission denied");
 
 console.log(failures ? `\n${failures} FAILURE(S)` : "\nALL CHECKS PASSED");
 process.exit(failures ? 1 : 0);
