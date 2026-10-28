@@ -15,16 +15,15 @@ export type DishInput = {
   id: string | null;
   name: string;
   description: string;
-  cookMinutes: number;
+  cookMinutes: number | null;
   availableToday: boolean;
-  /** The current photo to keep (null = no photo, or replaced by the uploaded file). */
   photo: { path: string; width: number | null; height: number | null; blur: string | null } | null;
-  /** Size + blur placeholder of the uploaded file, when there is one. */
   upload: { width: number; height: number; blur: string } | null;
   ingredients: { name: string; quantity: number | null; unit: string }[];
+  tags: string[];
+  meal: string | null;
 };
 
-/** Photos still shown in someone's order history are kept on disk. */
 async function photoStillUsed(tx: Tx, path: string) {
   return !!(await row(
     tx,
@@ -33,11 +32,6 @@ async function photoStillUsed(tx: Tx, path: string) {
   ));
 }
 
-/**
- * Create or update a dish. FormData: "dish" (JSON DishInput) and optionally
- * "photo" (the resized image from the browser). The file is written first and
- * removed again if the database refuses the dish.
- */
 export async function saveDish(form: FormData) {
   let input: DishInput;
   try {
@@ -62,25 +56,25 @@ export async function saveDish(form: FormData) {
           blur: input.upload?.blur ?? null,
         }
       : input.photo;
-    // Only keep a photo path the dish already had; never point at someone else's file.
     if (!uploaded && photo && photo.path !== previous?.photo_path) throw new Error("forbidden");
 
-    const dish = await row<Dish>(
-      tx,
-      "select * from public.save_dish($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)",
-      [
-        input.id,
-        input.name,
-        input.description,
-        input.cookMinutes,
-        input.availableToday,
-        photo?.path ?? null,
-        photo?.width ?? null,
-        photo?.height ?? null,
-        photo?.blur ?? null,
-        JSON.stringify(input.ingredients ?? []),
-      ],
-    );
+    const dish = await row<Dish>(tx, "select * from public.save_dish($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb)", [
+      input.id,
+      input.name,
+      input.description,
+      input.cookMinutes,
+      input.availableToday,
+      photo?.path ?? null,
+      photo?.width ?? null,
+      photo?.height ?? null,
+      photo?.blur ?? null,
+      JSON.stringify(input.ingredients ?? []),
+    ]);
+    await tx.query("select public.set_dish_details($1, $2::text[], $3)", [
+      dish!.id,
+      Array.isArray(input.tags) ? input.tags.slice(0, 20).map(String) : [],
+      input.meal ?? null,
+    ]);
     const old = previous?.photo_path;
     return { dish: dish!, oldPhoto: old && old !== photo?.path ? old : null };
   });
@@ -117,8 +111,9 @@ export async function deleteDish(id: string) {
 }
 
 export async function setDishAvailableToday(dishId: string, available: boolean) {
-  return act(STAFF, async (tx) =>
-    (await row<Dish>(tx, "select * from public.set_dish_available_today($1, $2)", [dishId, available]))!,
+  return act(
+    STAFF,
+    async (tx) => (await row<Dish>(tx, "select * from public.set_dish_available_today($1, $2)", [dishId, available]))!,
   );
 }
 
@@ -134,7 +129,6 @@ export async function fetchMenuBoard() {
   return act(STAFF, (tx) => menuBoardDishes(tx));
 }
 
-/** Today's menu as the signed-in person sees it. */
 export async function fetchTodayMenu() {
   return act(null, (tx) => menuForDay(tx, kitchenDate()));
 }

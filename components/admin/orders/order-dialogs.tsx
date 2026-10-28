@@ -140,7 +140,7 @@ export function RejectDialog({
                   key={text}
                   type="button"
                   onClick={() => setReason(text)}
-                  className="hover-overlay h-9 rounded-full border border-border bg-card px-3 text-sm font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-10"
+                  className="hover-overlay h-9 rounded-full border-2 border-line bg-card px-3 text-sm font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-10"
                 >
                   {text}
                 </button>

@@ -6,15 +6,15 @@ import { requireProfile } from "@/lib/auth/dal";
 import { kitchenDayStart } from "@/lib/dates";
 import { shouldShowPushPrompt } from "@/lib/push-prompt";
 import { asUser } from "@/lib/server/db";
-import { boardOrders, dishInfo, peopleNames } from "@/lib/server/queries";
+import { boardOrders, dishInfo, peopleDiets, peopleNames } from "@/lib/server/queries";
 
 export default async function AdminOrdersPage() {
   const profile = await requireProfile({ roles: ["owner", "admin"] });
   const t = await getTranslations();
-  // Open orders of any day + everything placed today.
-  const { orders, people, dishes } = await asUser(profile.id, async (tx) => ({
+  const { orders, people, diets, dishes } = await asUser(profile.id, async (tx) => ({
     orders: await boardOrders(tx, kitchenDayStart().toISOString()),
     people: await peopleNames(tx),
+    diets: await peopleDiets(tx),
     dishes: await dishInfo(tx),
   }));
 
@@ -32,6 +32,7 @@ export default async function AdminOrdersPage() {
       <OrdersBoard
         initialOrders={orders}
         people={people}
+        diets={diets}
         dishes={info}
         showPushPrompt={await shouldShowPushPrompt()}
       />

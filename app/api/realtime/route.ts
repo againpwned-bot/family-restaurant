@@ -2,10 +2,6 @@ import { getSession } from "@/lib/auth/dal";
 import { getDb } from "@/lib/server/db";
 import { dropEndedSessions, subscribe, type RealtimeEvent, type Subscriber } from "@/lib/server/realtime";
 
-// Live updates for the signed-in user as Server-Sent Events (hooks/use-realtime.ts).
-// Every change is re-read as this user, so row level security decides what
-// arrives (lib/server/realtime.ts). The stream ends when the session does.
-
 const PING_MS = 25_000;
 
 export async function GET(request: Request) {
@@ -35,8 +31,6 @@ export async function GET(request: Request) {
         close: () => stop(),
       };
       const unsubscribe = subscribe(subscriber);
-      // Keeps proxies and the browser from timing out an idle stream, and
-      // notices a session that ended while nothing changed.
       const ping = setInterval(() => {
         write(": ping\n\n");
         void dropEndedSessions(db, [subscriber]).catch(() => {});
@@ -50,12 +44,10 @@ export async function GET(request: Request) {
         try {
           controller.close();
         } catch {
-          // already closed by the browser
         }
       };
       request.signal.addEventListener("abort", () => stop());
 
-      // Reconnect after 3 s if the connection drops; the first event tells the browser it is live.
       write("retry: 3000\nevent: ready\ndata: {}\n\n");
     },
     cancel() {
@@ -66,7 +58,6 @@ export async function GET(request: Request) {
   return new Response(stream, {
     headers: {
       "Content-Type": "text/event-stream; charset=utf-8",
-      // no-transform: the response must not be gzip-buffered.
       "Cache-Control": "no-cache, no-store, no-transform",
       "X-Accel-Buffering": "no",
     },

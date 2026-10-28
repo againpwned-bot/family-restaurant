@@ -1,7 +1,3 @@
-// Client end-to-end checks: menu home (wheel + list), dish page and ordering,
-// live order status, cancel, history. Run with `npm run dev` in another
-// terminal (see helpers.mts).
-
 import {
   BASE,
   SHOTS,
@@ -28,7 +24,6 @@ import {
 const b = await browser();
 const clientAcc = account("client");
 
-// --- setup: the kitchen's browser; clean board; Sarmale + Ciorbă on the menu, Mici off
 const kitchenCtx = await context(b, "desktop");
 const kitchenNotifications = await recordNotifications(kitchenCtx);
 const kitchen = await login(kitchenCtx, account("admin"));
@@ -46,7 +41,6 @@ check("wheel is the default view", true);
 check("phone: home fits", await noHorizontalOverflow(page));
 await page.screenshot({ path: `${SHOTS}/client-home-wheel-phone.png` });
 
-// Turn the wheel with the keyboard: the front dish's title appears.
 await page.getByRole("listbox", { name: "Meniul de azi" }).focus();
 await page.keyboard.press("ArrowDown");
 await page.waitForTimeout(900);
@@ -66,7 +60,6 @@ await page.waitForTimeout(300);
 check("search filters (accent-insensitive)", (await page.getByRole("link", { name: /^Comandă / }).count()) === 1);
 await page.getByRole("searchbox", { name: "Caută" }).fill("");
 
-// The admin adds a dish: it appears without reloading.
 await setOnMenu(kitchen, mici.name, true);
 await page.getByRole("link", { name: `Comandă ${mici.name}` }).waitFor({ timeout: 10_000 });
 check("menu updates live when the kitchen adds a dish", true);
@@ -75,7 +68,6 @@ await page.getByRole("link", { name: `Comandă ${mici.name}` }).waitFor({ state:
 check("... and when it takes one off", true);
 
 console.log("\n== dish page + order");
-// Flip a card to its ingredients and back (3D flip on lite/full).
 await page.getByRole("button", { name: `Vezi ingredientele pentru ${sarmale.name}` }).click();
 await page.getByRole("button", { name: `Înapoi la poza pentru ${sarmale.name}` }).waitFor();
 check(
@@ -87,12 +79,10 @@ await page.screenshot({ path: `${SHOTS}/client-card-flipped-phone.png` });
 await page.getByRole("button", { name: `Înapoi la poza pentru ${sarmale.name}` }).click();
 await page.waitForTimeout(500);
 
-// Opening a dish from the menu: an overlay over the menu (shared photo element).
 await page.getByRole("link", { name: `Comandă ${sarmale.name}` }).click();
 await page.waitForURL(`${BASE}/dish/${sarmale.id}`);
 const dish = page.getByRole("dialog");
 await dish.getByRole("heading", { level: 1, name: sarmale.name }).waitFor();
-// The menu stays mounted underneath (hidden from assistive tech while the dialog is open).
 check(
   "dish opens as an overlay over the menu",
   (await page.locator('[role="radiogroup"][aria-label="Mod de afișare"]').count()) === 1,
@@ -227,7 +217,7 @@ console.log("\n== account: change password + sign out");
   const temp = await temporaryAccount(b);
   const phoneCtx = await context(b, "phone");
   const p = await login(phoneCtx, temp.account);
-  const otherCtx = await context(b, "desktop"); // a second device, signed in too
+  const otherCtx = await context(b, "desktop");
   const other = await login(otherCtx, temp.account);
 
   await p.goto(`${BASE}/settings`);

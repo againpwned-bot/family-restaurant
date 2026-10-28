@@ -29,16 +29,12 @@ import {
 type Stored = { tier: AnimationTier; renderer?: string; pinned?: boolean };
 
 type AnimationContextValue = {
-  /** What the UI should do right now. */
   tier: AnimationTier;
   pref: AnimationPref;
-  /** What this device was detected as (null until measured). */
   detected: AnimationTier | null;
   renderer: string | null;
   setPref: (pref: AnimationPref) => Promise<void>;
-  /** WebGL context lost / unavailable: fall back to lite without a fuss. */
   reportWebglFailure: () => void;
-  /** True once the first-seconds frame-rate check is over (heavy prefetches wait for it). */
   settled: boolean;
 };
 
@@ -54,15 +50,8 @@ const AnimationContext = createContext<AnimationContextValue>({
 
 export const useAnimation = () => useContext(AnimationContext);
 
-// Layout / shared-element animations (layoutId) need motion's domMax features;
-// they're loaded after hydration so they never delay the first paint.
 const loadDomMax = () => import("@/lib/motion-features").then((m) => m.default);
 type MotionFeatures = Parameters<typeof LazyMotion>[0]["features"];
-
-// Everything this provider changes on its own after the page loads (detected
-// tier, frame-rate check, the extra motion features) is a transition: an
-// urgent update here re-renders every motion element, and React would throw
-// away server HTML that is still hydrating (losing what someone already typed).
 
 function read(key: string): Stored | null {
   try {
@@ -77,7 +66,6 @@ function write(key: string, value: Stored | null) {
     if (value) localStorage.setItem(key, JSON.stringify(value));
     else localStorage.removeItem(key);
   } catch {
-    // storage unavailable: detection simply runs again next time
   }
 }
 
@@ -89,7 +77,6 @@ export function AnimationProvider({
 }: {
   userId: string | null;
   initialPref: AnimationPref;
-  /** What the profile already has stored (skip the write when unchanged). */
   initialDetected?: AnimationTier | null;
   children: ReactNode;
 }) {
@@ -106,8 +93,6 @@ export function AnimationProvider({
     prefRef.current = pref;
   }, [pref]);
 
-  // Detect once per page load (next frame, off the hydration path); a slow
-  // device's earlier downgrade sticks.
   useEffect(() => {
     let cancelled = false;
     let idleHandle = 0;
@@ -125,7 +110,6 @@ export function AnimationProvider({
       });
       write(key, { ...stored, tier, renderer: fresh.gpu?.renderer });
 
-      // Measure the first 3 seconds after the page is interactive.
       idleHandle = idle(async () => {
         if (cancelled) return;
         if (stored?.pinned || tier === "reduced") return startTransition(() => setSettled(true));
@@ -165,7 +149,6 @@ export function AnimationProvider({
     };
   }, []);
 
-  // Remember the detected tier on the profile too (informational).
   useEffect(() => {
     if (!userId || !detected || detected === initialDetected) return;
     void setAnimationDetected(detected).catch(() => {});
@@ -175,7 +158,6 @@ export function AnimationProvider({
     async (next: AnimationPref) => {
       setPrefState(next);
       if (next === "auto") {
-        // Start over: forget pins and earlier downgrades on this device.
         const fresh = detectTier();
         setDetected(fresh.tier);
         write(key, { tier: fresh.tier, renderer: fresh.gpu?.renderer });

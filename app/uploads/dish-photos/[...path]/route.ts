@@ -3,9 +3,6 @@ import path from "node:path";
 
 import { CONTENT_TYPES, photoFile } from "@/lib/server/uploads";
 
-// Serves dish photos from data/uploads/dish-photos/. Public like the menu
-// pictures of a restaurant (file names are random UUIDs); next/image fetches
-// them from here to make the resized AVIF/WebP versions.
 export async function GET(_request: Request, { params }: RouteContext<"/uploads/dish-photos/[...path]">) {
   const relative = (await params).path.join("/");
   const file = photoFile(relative);
@@ -16,7 +13,6 @@ export async function GET(_request: Request, { params }: RouteContext<"/uploads/
     return new Response(bytes, {
       headers: {
         "Content-Type": type,
-        // A new photo always gets a new file name, so a file never changes.
         "Cache-Control": "public, max-age=31536000, immutable",
         "Content-Length": String(bytes.length),
       },

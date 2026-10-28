@@ -1,7 +1,3 @@
-// Accounts: creation, passwords and the first-run seed from
-// scripts/users.local.json. Shared by the app and the scripts, so no Next.js
-// imports here. Passwords are never logged.
-
 import fs from "node:fs";
 import path from "node:path";
 
@@ -15,7 +11,6 @@ export type SeedUser = { role: AppRole; username: string; password: string; disp
 
 export const SEED_FILE = path.join(process.cwd(), "scripts", "users.local.json");
 
-/** Reads users.local.json: `{ users: [...] }` or a plain array, entries as objects or "role:username:password". */
 export function readSeedUsers(file = SEED_FILE): SeedUser[] {
   const raw = JSON.parse(fs.readFileSync(/*turbopackIgnore: true*/ file, "utf8")) as unknown;
   const list = (Array.isArray(raw) ? raw : (raw as { users?: unknown[] }).users) ?? [];
@@ -58,13 +53,14 @@ export class UsernameTakenError extends Error {
   }
 }
 
-/** Creates the login + profile in one transaction. Returns the new user id. */
 export async function createAccount(
   db: Db,
   input: { username: string; displayName: string; role: AppRole; password: string },
+  actorId?: string,
 ): Promise<string> {
   const hash = await hashPassword(input.password);
   return db.transaction(async (tx) => {
+    if (actorId) await tx.query("select set_config('app.user_id', $1, true)", [actorId]);
     const taken = await row(tx, "select 1 from public.profiles where lower(username) = lower($1)", [input.username]);
     if (taken) throw new UsernameTakenError();
     const user = await row<{ id: string }>(tx, "insert into auth.users (password_hash) values ($1) returning id", [
@@ -80,7 +76,6 @@ export async function createAccount(
   });
 }
 
-/** Sets a new password. By default also signs the user out everywhere except `keepSessionId`. */
 export async function setPassword(db: Queryable, userId: string, password: string, keepSessionId?: string) {
   const hash = await hashPassword(password);
   await db.query("update auth.users set password_hash = $2, password_changed_at = now() where id = $1", [
@@ -93,10 +88,6 @@ export async function setPassword(db: Queryable, userId: string, password: strin
   ]);
 }
 
-/**
- * Creates missing users and syncs roles (and passwords with `resetPasswords`).
- * Returns one line per user, without any password.
- */
 export async function seedAccounts(db: Db, users: SeedUser[], options: { resetPasswords?: boolean } = {}) {
   const lines: string[] = [];
   for (const user of users) {
@@ -126,7 +117,6 @@ export async function seedAccounts(db: Db, users: SeedUser[], options: { resetPa
   return lines;
 }
 
-/** First start: no accounts yet -> create them from users.local.json (if the file exists). */
 export async function seedAccountsIfEmpty(db: Db, log: (message: string) => void) {
   const count = await row<{ n: number }>(db, "select count(*)::int as n from auth.users");
   if (count && count.n > 0) return;

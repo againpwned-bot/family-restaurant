@@ -1,6 +1,3 @@
-// Password hashing with scrypt (built into Node, memory-hard, salted).
-// Stored as scrypt$N$r$p$<salt base64>$<hash base64>.
-
 import { randomBytes, scrypt, timingSafeEqual, type ScryptOptions } from "node:crypto";
 
 const N = 16384;
@@ -30,7 +27,6 @@ export async function verifyPassword(password: string, stored: string): Promise<
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
-/** Same cost as a real check, for unknown usernames (no timing hint about which names exist). */
 let dummy: Promise<string> | null = null;
 export async function verifyAgainstDummy(password: string): Promise<false> {
   dummy ??= hashPassword(randomBytes(12).toString("base64"));

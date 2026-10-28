@@ -1,9 +1,3 @@
-// Checks that ro.json and en.json have exactly the same keys, and that the
-// Romanian file uses the correct comma-below letters (ș ț), not the cedilla
-// look-alikes (ş ţ) that old keyboards produce.
-//
-//   npm run check:i18n
-
 import fs from "node:fs";
 import path from "node:path";
 
@@ -30,7 +24,6 @@ const problems: string[] = [];
 for (const key of roKeys.keys()) if (!enKeys.has(key)) problems.push(`missing in en.json: ${key}`);
 for (const key of enKeys.keys()) if (!roKeys.has(key)) problems.push(`missing in ro.json: ${key}`);
 
-// ICU argument names only ({count, plural, ...} / {name}), not words inside plural branches.
 const placeholders = (s: string) =>
   [...new Set([...s.matchAll(/\{\s*(\w+)\s*(?=[,}])/g)].map((m) => m[1]))].sort().join(",");
 for (const [key, value] of roKeys) {

@@ -5,7 +5,6 @@ import type { ReactNode } from "react";
 
 import { useAnimation } from "@/components/providers/animation-provider";
 
-/** When an order advances, its status flips forward in 3D (fade only when reduced). */
 export function StatusFlip({
   statusKey,
   children,

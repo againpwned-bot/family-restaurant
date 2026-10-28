@@ -1,13 +1,3 @@
-// Creates / updates the family accounts from scripts/users.local.json.
-//
-//   npm run seed:users                       create missing users, sync roles + display names
-//   npm run seed:users -- --reset-passwords  also set every password from the file
-//
-// The app does this by itself on its very first start (when there are no
-// accounts yet); afterwards the owner manages people on the Users page. This
-// script is for re-syncing from the file. Stop the app first: only one
-// process may open the database. Passwords are never printed.
-
 import fs from "node:fs";
 import path from "node:path";
 

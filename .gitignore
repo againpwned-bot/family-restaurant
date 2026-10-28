@@ -48,6 +48,7 @@ scripts/*.local.json
 
 # this computer's data: database, session key, push keys, dish photos
 /data/
+/data-*/
 
 # lighthouse / profiling reports
 /reports/*.json

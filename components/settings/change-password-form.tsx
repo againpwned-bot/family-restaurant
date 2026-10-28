@@ -33,7 +33,6 @@ export function ChangePasswordForm({ username }: { username: string }) {
 
   return (
     <form ref={formRef} action={action} className="grid max-w-md gap-4" noValidate>
-      {/* Lets password managers attach the new password to the right account. */}
       <input type="text" name="username" autoComplete="username" value={username} readOnly hidden />
 
       <div className="grid gap-2">

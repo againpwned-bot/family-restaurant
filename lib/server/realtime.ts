@@ -1,8 +1,3 @@
-// Live updates. Watched tables announce every change on the "changes" channel
-// (db/migrations/0004_change_feed.sql). For each signed-in browser listening
-// on /api/realtime, the changed row is read again AS THAT USER, so row level
-// security decides who receives what. Deletes only carry the primary key.
-
 import { withUser, row, rows, type Db } from "./database";
 
 export const REALTIME_TABLES = [
@@ -12,6 +7,9 @@ export const REALTIME_TABLES = [
   "dishes",
   "dish_ingredients",
   "shopping_checks",
+  "menu_plan",
+  "chat_messages",
+  "app_settings",
 ] as const;
 export type RealtimeTable = (typeof REALTIME_TABLES)[number];
 
@@ -27,11 +25,9 @@ export type Subscriber = {
   userId: string;
   sessionId: string;
   send: (event: RealtimeEvent) => void;
-  /** Called when the session behind the stream ended (signed out, password reset, role changed). */
   close: () => void;
 };
 
-// Shared across hot reloads (dev) and the different server bundles.
 const store = globalThis as typeof globalThis & { __meniuRealtime?: Set<Subscriber> };
 const subscribers = (store.__meniuRealtime ??= new Set<Subscriber>());
 
@@ -40,17 +36,12 @@ export function subscribe(subscriber: Subscriber): () => void {
   return () => subscribers.delete(subscriber);
 }
 
-// A dish taken off today's menu is no longer readable for the family, so its
-// update reaches them as a delete and it disappears at once. Only for dishes
-// (their ids aren't private); for everything else a row someone can't read
-// never produces an event for them.
 const GONE_WHEN_HIDDEN: ReadonlySet<RealtimeTable> = new Set(["dishes"]);
 
 function isTable(name: string): name is RealtimeTable {
   return (REALTIME_TABLES as readonly string[]).includes(name);
 }
 
-/** Closes the streams whose session no longer exists. Returns the ones still open. */
 export async function dropEndedSessions(db: Db, list: Iterable<Subscriber> = subscribers): Promise<Subscriber[]> {
   const all = [...list];
   if (!all.length) return all;
@@ -91,7 +82,7 @@ async function fanOut(db: Db, change: Change) {
     }
     let eventType = change.type;
     if (change.type !== "DELETE" && !record) {
-      if (change.type !== "UPDATE" || !GONE_WHEN_HIDDEN.has(change.table)) continue; // not visible to this user
+      if (change.type !== "UPDATE" || !GONE_WHEN_HIDDEN.has(change.table)) continue;
       eventType = "DELETE";
     }
     const event: RealtimeEvent = {
@@ -104,7 +95,6 @@ async function fanOut(db: Db, change: Change) {
   }
 }
 
-/** Started once when the database opens. Changes are handled in commit order. */
 export async function startChangeFeed(db: Db) {
   let queue = Promise.resolve();
   await db.listen("changes", (payload) => {

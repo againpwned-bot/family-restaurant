@@ -1,15 +1,3 @@
--- Meniul de acasă: core schema.
---
--- Accounts live in auth.users (created from scripts/users.local.json on first start,
--- or by the owner on the Users page). Every account has exactly one row in public.profiles, which is
--- the source of truth for the role. There is deliberately NO trigger that creates
--- a profile on sign-up: if public sign-up were ever left enabled by mistake, a
--- stray account would have no profile and therefore no access at all.
-
--- ---------------------------------------------------------------------------
--- Types
--- ---------------------------------------------------------------------------
-
 create type public.app_role as enum ('owner', 'admin', 'client');
 
 create type public.order_status as enum (
@@ -32,11 +20,6 @@ create type public.notification_type as enum (
   'test'
 );
 
--- ---------------------------------------------------------------------------
--- Helpers
--- ---------------------------------------------------------------------------
-
--- "Today" for the family kitchen, independent of the server's time zone.
 create or replace function public.today_local()
 returns date
 language sql
@@ -57,18 +40,12 @@ begin
 end;
 $$;
 
--- ---------------------------------------------------------------------------
--- Profiles
--- ---------------------------------------------------------------------------
-
 create table public.profiles (
   id uuid primary key references auth.users (id) on delete cascade,
   username text not null,
   display_name text not null,
   role public.app_role not null default 'client',
   locale text not null default 'ro',
-  -- Animation tier: the user's manual choice ('auto' = use detection) and the
-  -- last tier the device detection settled on.
   animation_pref text not null default 'auto',
   animation_detected text,
   created_at timestamptz not null default now(),
@@ -82,15 +59,12 @@ create table public.profiles (
   )
 );
 
--- Usernames are case-insensitive for login ("h4mbled" == "H4mbled").
 create unique index profiles_username_lower_key on public.profiles (lower(username));
 
 create trigger profiles_set_updated_at
   before update on public.profiles
   for each row execute function public.set_updated_at();
 
--- Role helpers. SECURITY DEFINER so RLS policies can call them without
--- recursing into the profiles policies.
 create or replace function public.current_app_role()
 returns public.app_role
 language sql
@@ -127,23 +101,15 @@ as $$
   )
 $$;
 
--- ---------------------------------------------------------------------------
--- Dishes
--- ---------------------------------------------------------------------------
-
 create table public.dishes (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   description text not null default '',
-  -- File path under data/uploads/dish-photos/ (served at /uploads/dish-photos/...).
   photo_path text,
   photo_width integer,
   photo_height integer,
-  -- Tiny base64 WebP used as a blur placeholder while the photo loads.
   photo_blur text,
   cook_minutes integer not null default 30,
-  -- The dish is on today's menu when available_on = today_local(). The menu
-  -- therefore resets by itself every night; the admin ticks it again each morning.
   available_on date,
   archived_at timestamptz,
   created_by uuid references public.profiles (id) on delete set null,
@@ -164,8 +130,6 @@ create trigger dishes_set_updated_at
   before update on public.dishes
   for each row execute function public.set_updated_at();
 
--- Quantities are for ONE portion; the shopping list multiplies by the ordered
--- quantity. quantity is null for "to taste" ingredients.
 create table public.dish_ingredients (
   id uuid primary key default gen_random_uuid(),
   dish_id uuid not null references public.dishes (id) on delete cascade,
@@ -180,29 +144,20 @@ create table public.dish_ingredients (
 
 create index dish_ingredients_dish_idx on public.dish_ingredients (dish_id, position);
 
--- ---------------------------------------------------------------------------
--- Orders
--- ---------------------------------------------------------------------------
-
 create table public.orders (
   id uuid primary key default gen_random_uuid(),
-  -- Human-friendly order number ("Comanda #12").
   number bigint generated always as identity,
   client_id uuid not null references public.profiles (id) on delete cascade,
   dish_id uuid references public.dishes (id) on delete set null,
-  -- Snapshots, so the history stays readable if the dish is edited or deleted.
   dish_name text not null,
   dish_photo_path text,
   quantity integer not null default 1,
   comment text,
-  -- null = "as soon as possible".
   requested_for timestamptz,
   status public.order_status not null default 'received',
-  -- Which admin accepted / rejected the order.
   decided_by uuid references public.profiles (id) on delete set null,
   decided_at timestamptz,
   reject_reason text,
-  -- Timer: total minutes (including extensions) and the moment it runs out.
   timer_minutes integer,
   eta_at timestamptz,
   cooking_at timestamptz,
@@ -227,7 +182,6 @@ create trigger orders_set_updated_at
   before update on public.orders
   for each row execute function public.set_updated_at();
 
--- Timeline of everything that happened to an order (who did what, when).
 create table public.order_events (
   id bigint generated always as identity primary key,
   order_id uuid not null references public.orders (id) on delete cascade,
@@ -242,13 +196,6 @@ create table public.order_events (
 
 create index order_events_order_idx on public.order_events (order_id, created_at);
 
--- ---------------------------------------------------------------------------
--- Notifications (in-app feed + source for Web Push)
--- ---------------------------------------------------------------------------
-
--- Rows are created by triggers on public.orders. The text is NOT stored: the
--- app and the push sender render it from type + payload, in the recipient's
--- language.
 create table public.notifications (
   id uuid primary key default gen_random_uuid(),
   recipient_id uuid not null references public.profiles (id) on delete cascade,
@@ -278,13 +225,6 @@ create table public.push_subscriptions (
 create unique index push_subscriptions_endpoint_key on public.push_subscriptions (endpoint);
 create index push_subscriptions_user_idx on public.push_subscriptions (user_id);
 
--- ---------------------------------------------------------------------------
--- Shopping list ("I bought it" ticks)
--- ---------------------------------------------------------------------------
-
--- The list itself is computed from active orders; only the ticks are stored,
--- per day. quantity remembers how much had been bought, so if more orders come
--- in afterwards the app can show what is still missing.
 create table public.shopping_checks (
   day date not null default public.today_local(),
   item_key text not null,

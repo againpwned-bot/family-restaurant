@@ -1,13 +1,3 @@
-// Frame-time profiling of the main transitions, per animation tier, with CPU
-// throttling (Chrome DevTools Protocol Emulation.setCPUThrottlingRate).
-//
-//   npm run build && npm run start   then:
-//   PERF_BASE_URL=http://localhost:3100 npx tsx tests/perf/profile.mts
-//
-// Desktop-full runs on the real GPU when one is available (NVIDIA PRIME offload
-// on Linux); phones are emulated (390x844, touch, DPR 2) at 4x and 6x CPU.
-// A frame counts as dropped when it took longer than 1.5x the 60 Hz budget.
-
 import fs from "node:fs";
 import path from "node:path";
 
@@ -29,7 +19,6 @@ const BASE = process.env.PERF_BASE_URL ?? "http://localhost:3000";
 const OUT = path.join(process.cwd(), "tests", "perf", "results.json");
 const FRAME = 1000 / 60;
 
-// Frame recorder injected into every page (a string: tsx would add helpers).
 const RECORDER = `
   window.__perf = {
     frames: [], gen: 0,
@@ -116,12 +105,11 @@ async function session(b: Browser, kind: "desktop" | "phone", cpu: number) {
   await page.waitForURL((u) => u.pathname === "/");
   const cdp = await ctx.newCDPSession(page);
   await cdp.send("Emulation.setCPUThrottlingRate", { rate: cpu });
-  await page.waitForTimeout(4500); // tier detection + its 3 s fps check
+  await page.waitForTimeout(4500);
   return { ctx, page };
 }
 
 async function scenarios(page: Page, profile: string, kind: "desktop" | "phone", dishId: string, dishName: string) {
-  // 1. Wheel turn (CSS 3D drum; rAF loop stops when settled)
   await page
     .getByRole("radio", { name: "Roată" })
     .click()
@@ -132,10 +120,8 @@ async function scenarios(page: Page, profile: string, kind: "desktop" | "phone",
     await wheel.focus();
     await measure(page, profile, "wheel: ring -> drum", () => page.keyboard.press("ArrowDown"), 1200);
     await measure(page, profile, "wheel: next dish", () => page.keyboard.press("ArrowDown"), 1200);
-    // Idle: the loop must be stopped -> no work, frames only from the recorder.
     await measure(page, profile, "wheel: idle (loop stopped)", async () => {}, 1000);
   }
-  // 2. Card flip (3D) in list view
   await page
     .getByRole("radio", { name: "Listă" })
     .click()
@@ -152,7 +138,6 @@ async function scenarios(page: Page, profile: string, kind: "desktop" | "phone",
       900,
     );
   }
-  // 3. Hover tilt (desktop-full) / press tilt (lite)
   const card = page.getByRole("link", { name: `Comandă ${dishName}` });
   const box = await card.boundingBox();
   if (box && kind === "desktop") {
@@ -168,7 +153,6 @@ async function scenarios(page: Page, profile: string, kind: "desktop" | "phone",
       600,
     );
   }
-  // 4. Shared element: card -> dish overlay, then close
   await measure(
     page,
     profile,
@@ -189,7 +173,6 @@ async function scenarios(page: Page, profile: string, kind: "desktop" | "phone",
     },
     900,
   );
-  // 5. Page transition
   await measure(
     page,
     profile,
@@ -200,7 +183,6 @@ async function scenarios(page: Page, profile: string, kind: "desktop" | "phone",
     },
     1000,
   );
-  // 6. Live order: status flip + banner (the kitchen advances the order)
   const order = await placeOrder(page, dishId);
   await page.waitForTimeout(1500);
   await measure(
@@ -212,17 +194,14 @@ async function scenarios(page: Page, profile: string, kind: "desktop" | "phone",
   );
   await measure(page, profile, "order: timer running (idle)", async () => {}, 2000);
   await cancelOrder(page, order.id);
-  // 7. Dish page (desktop-full: 3D plate)
   await page.goto(`${BASE}/dish/${dishId}`);
   await page.waitForTimeout(2500);
   await measure(page, profile, "dish page (3D plate if full)", async () => {}, 2000);
-  // 8. Home idle (desktop-full: WebGL steam background)
   await page.goto(`${BASE}/`);
   await page.waitForTimeout(3000);
   await measure(page, profile, "home idle (WebGL bg if full)", async () => {}, 2000);
 }
 
-// The kitchen side runs in its own (unthrottled) browser.
 const kitchenBrowser = await e2eBrowser();
 const kitchen = await login(await context(kitchenBrowser, "desktop"), account("admin"));
 const target = (await sampleDishes(kitchen)).sarmale;

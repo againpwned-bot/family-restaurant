@@ -11,7 +11,7 @@ test("units are normalised to a base unit", () => {
   assert.equal(itemKey("  Carne  Tocată ", "kg"), itemKey("carne tocată", "g"));
 });
 
-test("quantities are multiplied by portions and summed across orders", () => {
+test("each ordered dish counts once (whole recipe), summed across dishes", () => {
   const list = buildShoppingList(
     [
       { dish_id: "a", dish_name: "Sarmale", quantity: 2 },
@@ -27,7 +27,7 @@ test("quantities are multiplied by portions and summed across orders", () => {
     ],
   );
   const meat = list.find((i) => i.key === "carne tocată|g")!;
-  assert.equal(meat.total, 550);
+  assert.equal(meat.total, 250);
   assert.deepEqual(meat.dishes, [
     { name: "Sarmale", quantity: 3 },
     { name: "Ciorbă", quantity: 1 },
@@ -51,12 +51,9 @@ test("display quantities switch to kg / l and use the locale's decimal separator
 });
 
 test("kitchen day boundaries follow Europe/Bucharest, including DST", () => {
-  // 2026-10-06 21:30 UTC is already 00:30 on the 7th in Bucharest (UTC+3).
   assert.equal(kitchenDate(new Date("2026-10-06T21:30:00Z")), "2026-10-07");
   assert.equal(kitchenDayStart(new Date("2026-10-07T10:00:00Z")).toISOString(), "2026-10-06T21:00:00.000Z");
-  // Winter time (UTC+2).
   assert.equal(kitchenDayStart(new Date("2026-12-01T10:00:00Z")).toISOString(), "2026-11-30T22:00:00.000Z");
-  // DST ends on 2026-10-25 at 04:00 local: midnight is still UTC+3, 13:30 is UTC+2.
   assert.equal(kitchenTimeToday("13:30", new Date("2026-10-25T09:00:00Z"))!.toISOString(), "2026-10-25T11:30:00.000Z");
   assert.equal(kitchenTimeToday("25:99"), null);
 });

@@ -1,11 +1,3 @@
--- Meniul de acasă: admin helpers (dishes, today's menu, shopping list).
--- All of them are staff-only and use the kitchen's local date (today_local()).
-
--- ---------------------------------------------------------------------------
--- Dishes: create / update a dish and replace its ingredients atomically.
--- p_ingredients: [{ "name": "Orez", "quantity": 20, "unit": "g" }, ...]
--- ---------------------------------------------------------------------------
-
 create or replace function public.save_dish(
   p_id uuid,
   p_name text,
@@ -86,8 +78,6 @@ begin
 end;
 $$;
 
--- Dishes that were ever ordered are archived (history keeps their name and
--- photo); the others are deleted. Returns the photo path the caller may remove.
 create or replace function public.delete_dish(p_id uuid)
 returns jsonb
 language plpgsql
@@ -112,10 +102,6 @@ begin
   return jsonb_build_object('mode', 'deleted', 'photo_path', v_dish.photo_path);
 end;
 $$;
-
--- ---------------------------------------------------------------------------
--- Today's menu
--- ---------------------------------------------------------------------------
 
 create or replace function public.set_dish_available_today(p_dish_id uuid, p_available boolean)
 returns public.dishes
@@ -142,7 +128,6 @@ begin
 end;
 $$;
 
--- Puts yesterday's dishes back on today's menu. Returns how many were added.
 create or replace function public.copy_yesterday_menu()
 returns integer
 language plpgsql
@@ -176,10 +161,6 @@ begin
   return v_count;
 end;
 $$;
-
--- ---------------------------------------------------------------------------
--- Shopping list ticks
--- ---------------------------------------------------------------------------
 
 create or replace function public.set_shopping_check(p_item_key text, p_checked boolean, p_quantity numeric default null)
 returns void

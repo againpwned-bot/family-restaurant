@@ -32,7 +32,11 @@ notifications (explicit opt-in, test notification) and change password.
   files in `data/`, username + password sign-in with scrypt-hashed passwords and httpOnly session cookies, live
   updates over Server-Sent Events, dish photos on disk, Web Push sent straight from the Next.js server.
   No database server, Docker or cloud account to set up.
-- Design system generated with `uipro init --ai claude` (`design-system/meniul-de-acasa/`)
+- Look: "paper menu" in light mode, "kitchen chalkboard" in dark mode. Fraunces (headings), Bricolage Grotesque
+  (text), Caveat (handwritten notes), DM Mono (order tickets). Colours live in `app/globals.css`; the animated
+  decorations (doodles, ticker, spinning stamp, cooking pot, confetti) are in `components/decor/`. Every endless
+  animation carries `data-anim="loop"` and stops on the "Reduse" animation setting.
+- Original design-system notes: `design-system/meniul-de-acasa/` (the palette there predates the redesign)
 
 ## Run it
 
@@ -46,14 +50,21 @@ On the first start the app creates `data/` (database, session key, push keys, ph
 `scripts/users.local.json` (git-ignored; the `"role:username:password"` form also works). After that the owner
 adds, renames and removes people on the Users page. Passwords are never printed or logged.
 
-For everyday use, the production build is faster:
+For everyday use, the production build is faster (`npm run serve` does both steps):
 
 ```bash
 npm run build && npm start      # http://localhost:3000
 ```
 
+If the browser still shows an old look after updating the code, stop the app, delete the `.next/` folder and
+build again.
+
 Optional example dishes (six Romanian dishes with ingredients, no photos): stop the app, `npm run seed:dishes`,
 start it again. Only one process can open the database at a time; the scripts tell you if the app is running.
+
+The family's own dishes (exactly the recipes in "Cartea de bucate a Medei") live in `scripts/family-recipes.ts`,
+copied as written: amounts are for the whole recipe and there are no cooking times. Add a dish there, stop the app
+and run `npm run seed:recipes` (names already on the dishes list are skipped).
 
 ### Phones on the home Wi-Fi
 
@@ -63,6 +74,10 @@ computer, so use the production build for phones). Everything works there except
 browsers only allow it on `https://` or on `localhost`, so phones get the in-app banner and sound while the app
 is open. Push notifications work in the browser of this computer (`http://localhost:3000`), or anywhere you put
 the app behind HTTPS.
+
+On a phone, open the address in Chrome (Android) or Safari (iPhone) and use **Add to Home screen**: the app then
+opens full screen with its own icon, like an installed app. If the phone can't reach the address, check that both
+are on the same Wi-Fi and that this computer's firewall allows port 3000 (on Ubuntu: `sudo ufw allow 3000/tcp`).
 
 ### Settings (optional, in `.env.local`)
 
@@ -106,6 +121,15 @@ npx tsx tests/perf/profile.mts   # frame timing per tier with CPU throttling (se
 
 The e2e checks drive both sides of every flow (the family member and the kitchen) through real browser sessions
 and need Playwright's Chromium once: `npx playwright-core install chromium`.
+
+They place, cancel and hand over real orders and change today's menu, so run them against a separate copy with
+its own data folder, not the family's:
+
+```bash
+MENIU_DATA_DIR=./data-e2e npm run seed:dishes          # creates the copy with the example dishes
+MENIU_DATA_DIR=./data-e2e npx next start -p 3100       # in another terminal (adds the accounts on start)
+E2E_BASE_URL=http://localhost:3100 npm run test:e2e
+```
 
 ## Performance
 

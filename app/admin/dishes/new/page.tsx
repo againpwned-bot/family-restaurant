@@ -21,13 +21,15 @@ export default async function NewDishPage() {
           id: null,
           name: "",
           description: "",
-          cook_minutes: 30,
+          cook_minutes: null,
           availableToday: false,
           photo_path: null,
           photo_width: null,
           photo_height: null,
           photo_blur: null,
           ingredients: [],
+          tags: [],
+          meal: null,
         }}
       />
     </>

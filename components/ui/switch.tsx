@@ -4,8 +4,6 @@ import * as React from "react"
 import { cn } from "cn"
 import { Switch as SwitchPrimitive } from "radix-ui"
 
-// Bigger than the shadcn default and with a 44px hit area (the ::after layer).
-// Only the thumb moves (transform); the track colour changes instantly.
 function Switch({
   className,
   size = "default",

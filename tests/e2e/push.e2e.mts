@@ -1,8 +1,3 @@
-// Notifications end-to-end checks: the service worker's subscription route,
-// the service worker showing pushes, and the opt-in UI. Run with `npm run dev`
-// in another terminal (see helpers.mts). What the server sends for each event
-// is covered by tests/push.test.ts.
-
 import { BASE, SHOTS, account, browser, check, context, done, login, temporaryAccount } from "./helpers.mjs";
 
 const b = await browser({ full: true });
@@ -10,7 +5,6 @@ const clientAcc = account("client");
 
 console.log("\n== subscription route (used by the service worker when the browser rotates keys)");
 {
-  // A throwaway account: deleting it also deletes the made-up subscription below.
   const temp = await temporaryAccount(b);
   const ctx = await context(b, "desktop");
   const page = await login(ctx, temp.account);
@@ -70,7 +64,6 @@ console.log("\n== service worker shows pushes");
     type: "order_ready",
   };
 
-  // App in front: the in-app banner covers it, no system notification.
   await cdp.send("ServiceWorker.deliverPushMessage", { origin: BASE, registrationId, data: JSON.stringify(payload) });
   await page.waitForTimeout(800);
   const whileOpen = await page.evaluate(() =>
@@ -78,7 +71,6 @@ console.log("\n== service worker shows pushes");
   );
   check("app focused -> no duplicate system notification", whileOpen === 0);
 
-  // App in the background (another site in the tab): system notification.
   await page.goto("about:blank");
   await cdp.send("ServiceWorker.deliverPushMessage", { origin: BASE, registrationId, data: JSON.stringify(payload) });
   await page.waitForTimeout(800);
@@ -100,7 +92,6 @@ console.log("\n== service worker shows pushes");
 
 console.log("\n== opt-in UI");
 {
-  // Permission never requested automatically.
   const ctx = await context(b, "phone");
   const page = await login(ctx, clientAcc);
   let asked = false;
@@ -122,10 +113,7 @@ console.log("\n== opt-in UI");
   check("settings has the explicit button", true);
   await ctx.close();
 
-  // Denied: clear instructions.
   const denied = await context(b, "desktop");
-  // Simulate a browser where the user blocked notifications for this site.
-  // (A string, not a function: tsx would inject helpers that don't exist in the page.)
   await denied.addInitScript(`
     (() => {
       const Real = window.Notification;
@@ -143,8 +131,6 @@ console.log("\n== opt-in UI");
   await dp.screenshot({ path: `${SHOTS}/push-denied-desktop.png` });
   await denied.close();
 
-  // Granted: the button subscribes (headless Chromium has no push service, so
-  // a graceful error toast is also acceptable here).
   const granted = await context(b, "desktop");
   await granted.grantPermissions(["notifications"], { origin: BASE });
   const gp = await login(granted, clientAcc);

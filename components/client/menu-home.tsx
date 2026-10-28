@@ -1,6 +1,7 @@
 "use client";
 
-import { Clock, Disc3, LayoutGrid, Search, Soup, X } from "lucide-react";
+import { ArrowRight, Clock, Disc3, LayoutGrid, Search, X } from "lucide-react";
+import { m } from "motion/react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { getImageProps } from "next/image";
@@ -8,6 +9,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { DishCard } from "@/components/client/dish-card";
+import { CookingPot } from "@/components/decor/cooking-pot";
 import type { MenuDish } from "@/components/client/menu-types";
 import { placeholderDataUrl } from "@/components/dish/dish-photo";
 import { useAnimation } from "@/components/providers/animation-provider";
@@ -19,13 +21,14 @@ import { dishPhotoUrl } from "@/lib/photos";
 import { matches } from "@/lib/search";
 import { fetchTodayMenu } from "@/app/actions/dishes";
 import { safe } from "@/lib/action-result";
+import type { DishTag } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 type View = "wheel" | "list";
+type Filter = "all" | "quick" | DishTag;
 const VIEW_KEY = "menu-view";
 const QUICK_MINUTES = 30;
 
-// The chosen view is remembered per device (localStorage), read after hydration.
 const viewListeners = new Set<() => void>();
 function readView(): View {
   try {
@@ -38,13 +41,11 @@ function writeView(view: View) {
   try {
     localStorage.setItem(VIEW_KEY, view);
   } catch {
-    // storage unavailable: the choice lasts for this page only
   }
   viewListeners.forEach((l) => l());
 }
 const subscribeView = (l: () => void) => (viewListeners.add(l), () => viewListeners.delete(l));
 
-/** Optimised (AVIF/WebP, resized) URL for the wheel's plain <img>. */
 function wheelImage(dish: MenuDish): string {
   const src = dishPhotoUrl(dish.photo_path);
   if (!src) return placeholderDataUrl(dish.name);
@@ -55,11 +56,10 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
   const t = useTranslations();
   const [dishes, setDishes] = useState(initialDishes);
   const [query, setQuery] = useState("");
-  const [quick, setQuick] = useState(false);
+  const [filter, setFilter] = useState<Filter>("all");
   const deferredQuery = useDeferredValue(query);
   const storedView = useSyncExternalStore(subscribeView, readView, () => "wheel" as View);
   const { tier } = useAnimation();
-  // Reduced animations: no 3D at all, so the wheel gives way to the list.
   const view: View = tier === "reduced" ? "list" : storedView;
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wheelBox = useRef<HTMLDivElement>(null);
@@ -73,8 +73,6 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
     if (data) setDishes(data);
   }, []);
 
-  // A dish taken off the menu is no longer visible to us (RLS), so its change
-  // never arrives: refetch on any dish event and every minute as a safety net.
   useRealtime(
     "menu",
     [{ table: "dishes" }, { table: "dish_ingredients" }],
@@ -89,18 +87,23 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
     return () => clearInterval(id);
   }, [refetch]);
 
+  const filters = useMemo<Filter[]>(() => {
+    const tags = new Set(dishes.flatMap((d) => d.tags));
+    return ["all", "quick", ...[...tags].sort()];
+  }, [dishes]);
+  const active: Filter = filters.includes(filter) ? filter : "all";
+
   const visible = useMemo(
     () =>
       dishes.filter(
         (d) =>
-          (!quick || d.cook_minutes <= QUICK_MINUTES) &&
+          (active === "all" ||
+            (active === "quick" ? d.cook_minutes !== null && d.cook_minutes <= QUICK_MINUTES : d.tags.includes(active))) &&
           matches(deferredQuery, d.name, d.description, ...d.dish_ingredients.map((i) => i.name)),
       ),
-    [dishes, quick, deferredQuery],
+    [dishes, active, deferredQuery],
   );
 
-  // Follow the wheel's front card (its listbox exposes it as aria-activedescendant)
-  // to show a readable caption on phones, where the wheel's own labels are tiny.
   useEffect(() => {
     const stage = wheelBox.current?.querySelector('[role="listbox"]');
     if (!stage) return;
@@ -121,22 +124,20 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
 
   if (!dishes.length) {
     return (
-      <div className="grid place-items-center gap-3 rounded-3xl border border-dashed border-border bg-card px-6 py-16 text-center">
-        <span className="grid size-16 place-items-center rounded-full bg-secondary text-secondary-foreground">
-          <Soup className="size-8" aria-hidden="true" />
-        </span>
-        <h2 className="font-heading text-2xl font-bold">{t("home.empty")}</h2>
+      <div className="grid place-items-center gap-3 rounded-[2rem] bg-card px-6 py-14 text-center sticker">
+        <CookingPot className="size-24 text-foreground" />
+        <h2 className="font-heading text-3xl font-black">{t("home.empty")}</h2>
         <p className="max-w-md text-muted-foreground">{t("home.emptyText")}</p>
       </div>
     );
   }
 
   return (
-    <div className="grid grid-cols-1 gap-5">
+    <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative min-w-0 flex-1 sm:max-w-sm">
           <Search
-            className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
+            className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-muted-foreground"
             aria-hidden="true"
           />
           <Input
@@ -145,13 +146,13 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("home.searchPlaceholder")}
             aria-label={t("common.search")}
-            className="pr-10 pl-9"
+            className="h-12 rounded-full border-line pr-10 pl-10 text-base shadow-[3px_3px_0_var(--shadow-hard)] pointer-coarse:h-12"
           />
           {query ? (
             <Button
               variant="ghost"
               size="icon-sm"
-              className="absolute top-1/2 right-1 -translate-y-1/2"
+              className="absolute top-1/2 right-1.5 -translate-y-1/2"
               aria-label={t("common.clearSearch")}
               onClick={() => setQuery("")}
             >
@@ -163,20 +164,31 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
           <div
             role="group"
             aria-label={t("home.filtersLabel")}
-            className="-my-1 flex min-w-0 gap-2 overflow-x-auto py-1 [scrollbar-width:none]"
+            className="isolate -my-1 flex min-w-0 gap-1 overflow-x-auto rounded-full border-2 border-line bg-card p-1 [scrollbar-width:none]"
           >
-            {[false, true].map((value) => (
+            {filters.map((value) => (
               <button
-                key={String(value)}
+                key={value}
                 type="button"
-                aria-pressed={quick === value}
-                onClick={() => setQuick(value)}
+                aria-pressed={active === value}
+                onClick={() => setFilter(value)}
                 className={cn(
-                  "hover-overlay h-10 shrink-0 rounded-full border px-4 text-sm font-bold whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-11",
-                  quick === value ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card",
+                  "relative h-9 shrink-0 rounded-full px-4 text-sm font-bold whitespace-nowrap outline-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-10",
+                  active === value ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
                 )}
               >
-                {value ? t("home.filters.quick") : t("home.filters.all")}
+                {active === value ? (
+                  <m.span
+                    layoutId="filter-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 -z-10 rounded-full bg-primary"
+                  />
+                ) : null}
+                {value === "all"
+                  ? t("home.filters.all")
+                  : value === "quick"
+                    ? t("home.filters.quick")
+                    : t(`dishTags.${value}`)}
               </button>
             ))}
           </div>
@@ -184,7 +196,7 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
             role="radiogroup"
             aria-label={t("home.viewLabel")}
             hidden={tier === "reduced"}
-            className="flex shrink-0 rounded-full border border-border bg-card p-1"
+            className="isolate flex shrink-0 gap-0.5 rounded-full border-2 border-line bg-card p-1"
           >
             {(["wheel", "list"] as const).map((v) => (
               <button
@@ -195,12 +207,23 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
                 onClick={() => writeView(v)}
                 aria-label={v === "wheel" ? t("home.viewWheel") : t("home.viewList")}
                 className={cn(
-                  "grid size-9 place-items-center rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-10",
-                  view === v ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                  "relative grid size-9 place-items-center rounded-full outline-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:size-10",
+                  view === v ? "text-background" : "text-muted-foreground hover:text-foreground",
                 )}
               >
+                {view === v ? (
+                  <m.span
+                    layoutId="view-pill"
+                    transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    className="absolute inset-0 -z-10 rounded-full bg-foreground"
+                  />
+                ) : null}
                 {v === "wheel" ? (
-                  <Disc3 className="size-5" aria-hidden="true" />
+                  <Disc3
+                    className={cn("size-5", view === v && "animate-spin-slow")}
+                    data-anim="loop"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <LayoutGrid className="size-5" aria-hidden="true" />
                 )}
@@ -211,16 +234,13 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
       </div>
 
       {visible.length === 0 ? (
-        <p className="rounded-3xl border border-dashed border-border bg-card py-12 text-center text-muted-foreground">
+        <p className="rounded-[2rem] border-2 border-dashed border-line bg-card py-12 text-center font-hand text-2xl font-bold text-muted-foreground">
           {t("home.noResults", { query: deferredQuery })}
         </p>
       ) : view === "wheel" ? (
         <div className="grid gap-2">
           <div
             ref={wheelBox}
-            // The wheel's cards are plain <a>s: turn their clicks into client-side
-            // navigation (opens the dish over the menu) and ignore the click that
-            // ends a drag.
             onPointerDownCapture={(e) => {
               pointerStart.current = { x: e.clientX, y: e.clientY };
               dragged.current = false;
@@ -231,11 +251,11 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
             }}
             onClickCapture={(e) => {
               const link = (e.target as HTMLElement).closest<HTMLAnchorElement>('a[href^="/dish/"]');
-              if (!link || e.metaKey || e.ctrlKey || e.shiftKey) return; // new tab: browser default
+              if (!link || e.metaKey || e.ctrlKey || e.shiftKey) return;
               e.preventDefault();
               if (!dragged.current) router.push(link.getAttribute("href")!);
             }}
-            className="relative h-[min(50svh,720px)] min-h-[20rem] overflow-hidden rounded-3xl border border-border bg-card font-heading shadow-sm sm:h-[min(68svh,720px)] sm:min-h-[26rem]"
+            className="relative h-[min(52svh,720px)] min-h-[20rem] overflow-hidden rounded-[2rem] bg-card font-heading sticker sm:h-[min(68svh,720px)] sm:min-h-[26rem]"
           >
             <WorksWheel
               items={wheelItems}
@@ -247,10 +267,10 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
           {visible[Math.min(front, visible.length - 1)] ? (
             <WheelCaption dish={visible[Math.min(front, visible.length - 1)]} />
           ) : null}
-          <p className="text-sm text-muted-foreground">{t("home.wheelHint")}</p>
+          <p className="font-hand text-xl font-bold text-muted-foreground">{t("home.wheelHint")}</p>
         </div>
       ) : (
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
           {visible.map((dish, i) => (
             <DishCard key={dish.id} dish={dish} index={i} preload={i === 0} />
           ))}
@@ -260,20 +280,24 @@ export function MenuHome({ initialDishes }: { initialDishes: MenuDish[] }) {
   );
 }
 
-/** Phone-only caption under the wheel: the dish at the front + an order link. */
 function WheelCaption({ dish }: { dish: MenuDish }) {
   const t = useTranslations();
   return (
-    <div className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 sm:hidden" aria-live="polite">
+    <div className="flex items-center gap-3 rounded-2xl bg-card p-3 sticker sm:hidden" aria-live="polite">
       <div className="min-w-0 flex-1">
-        <p className="truncate font-heading text-lg leading-tight font-bold">{dish.name}</p>
-        <p className="flex items-center gap-1 text-sm text-muted-foreground">
-          <Clock className="size-3.5" aria-hidden="true" />
-          {t("common.minutesShort", { minutes: dish.cook_minutes })}
-        </p>
+        <p className="truncate font-heading text-xl leading-tight font-black">{dish.name}</p>
+        {dish.cook_minutes !== null ? (
+          <p className="flex items-center gap-1 text-sm text-muted-foreground">
+            <Clock className="size-3.5" aria-hidden="true" />
+            {t("common.minutesShort", { minutes: dish.cook_minutes })}
+          </p>
+        ) : null}
       </div>
       <Button asChild>
-        <Link href={`/dish/${dish.id}`}>{t("home.order")}</Link>
+        <Link href={`/dish/${dish.id}`}>
+          {t("home.order")}
+          <ArrowRight aria-hidden="true" />
+        </Link>
       </Button>
     </div>
   );

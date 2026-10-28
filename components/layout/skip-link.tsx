@@ -1,6 +1,5 @@
 import { getTranslations } from "next-intl/server";
 
-/** First focusable element on every page: jumps past the navigation. */
 export async function SkipLink() {
   const t = await getTranslations("nav");
   return (

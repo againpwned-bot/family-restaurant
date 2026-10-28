@@ -9,7 +9,6 @@ import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 
-/** Full-screen sheet on phones, a large card on desktop; closes back to the menu. */
 export function DishOverlay({ title, children }: { title: string; children: ReactNode }) {
   const router = useRouter();
   const t = useTranslations("common");

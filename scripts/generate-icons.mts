@@ -1,6 +1,3 @@
-// Generates the PWA / favicon icons from the brand mark (steaming bowl).
-//   npx tsx scripts/generate-icons.ts
-
 import fs from "node:fs";
 
 import sharp from "sharp";
@@ -10,7 +7,6 @@ const BOWL = `
   <path d="M5 21h38a2 2 0 0 1 2 2.2C44 33.6 35 42 24 42S4 33.6 3 23.2A2 2 0 0 1 5 21Z" fill="#fff"/>
   <path d="M15 46h18" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`;
 
-// `scale` = share of the canvas used by the 48-unit mark.
 const icon = (size: number, scale: number, background: string | null, radius = 0) => {
   const mark = size * scale;
   const offset = (size - mark) / 2;
@@ -18,12 +14,12 @@ const icon = (size: number, scale: number, background: string | null, radius = 0
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${bg}<g transform="translate(${offset} ${offset}) scale(${mark / 48})">${BOWL}</g></svg>`;
 };
 
-const RED = "#dc2626";
+const RED = "#b8321a";
 const outputs: [string, string][] = [
   ["public/icons/icon-192.png", icon(192, 0.62, RED, 42)],
   ["public/icons/icon-512.png", icon(512, 0.62, RED, 112)],
-  ["public/icons/maskable-512.png", icon(512, 0.5, RED)], // content inside the 80% safe zone
-  ["public/icons/badge-96.png", icon(96, 0.8, null)], // Android status bar: white on transparent
+  ["public/icons/maskable-512.png", icon(512, 0.5, RED)],
+  ["public/icons/badge-96.png", icon(96, 0.8, null)],
   ["app/apple-icon.png", icon(180, 0.6, RED)],
 ];
 

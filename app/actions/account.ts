@@ -40,7 +40,6 @@ export async function changePassword(_prev: ChangePasswordState, formData: FormD
       return { error: "wrong_current" };
     }
     clearFailures(limitKey);
-    // Other devices signed in with the old password are signed out; this one stays.
     await setPassword(db, session.profile.id, next, session.sessionId);
   } catch (error) {
     console.error("[change-password]", error);

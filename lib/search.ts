@@ -1,4 +1,3 @@
-/** Search-as-you-type over several fields, accent- and case-insensitive ("ciorba" finds "Ciorbă"). */
 export function matches(query: string, ...fields: string[]) {
   const norm = (s: string) =>
     s

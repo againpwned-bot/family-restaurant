@@ -60,9 +60,11 @@
       "required": "Completează numele de utilizator și parola.",
       "invalid": "Nume de utilizator sau parolă greșită.",
       "rate_limited": "Prea multe încercări. Mai așteaptă puțin și încearcă din nou.",
-      "no_access": "Contul acesta nu are acces la Meniul de acasă.",
+      "no_access": "Contul acesta a fost dezactivat. Roagă proprietarul să-l reactiveze.",
       "unknown": "Ceva n-a mers. Încearcă din nou."
-    }
+    },
+    "scribble": "Ți-e foame?",
+    "stamp": "Bucătăria familiei • Meniul de acasă • "
   },
   "nav": {
     "main": "Navigare principală",
@@ -80,7 +82,13 @@
     "more": "Mai mult",
     "account": "Contul meu",
     "logout": "Deconectare",
-    "loggingOut": "Te deconectăm…"
+    "loggingOut": "Te deconectăm…",
+    "planner": "Planificare",
+    "history": "Istoric",
+    "stats": "Statistici",
+    "chat": "Chat",
+    "broadcasts": "Anunțuri",
+    "audit": "Jurnal"
   },
   "settings": {
     "title": "Setări",
@@ -149,7 +157,15 @@
       "invalid_item": "Element invalid.",
       "invalid_photo": "Fotografia nu a putut fi salvată. Încearcă altă poză (JPEG, PNG sau WebP).",
       "network": "Nu există conexiune. Verifică internetul și încearcă din nou.",
-      "unknown": "Ceva n-a mers. Încearcă din nou."
+      "unknown": "Ceva n-a mers. Încearcă din nou.",
+      "ordering_closed": "Comenzile pentru acest fel s-au închis pentru azi.",
+      "invalid_day": "Alege o zi de azi încolo.",
+      "menu_empty": "Nu e nimic în meniul acelei zile de salvat.",
+      "template_not_found": "Șablonul acesta nu mai există.",
+      "invalid_broadcast": "Scrie un titlu (max. 80 de caractere) și un mesaj de cel mult 300 de caractere.",
+      "no_recipients": "Nimeni nu ar primi anunțul acesta.",
+      "invalid_message": "Mesajele pot avea între 1 și 2000 de caractere.",
+      "user_not_found": "Persoana aceasta nu mai există."
     }
   },
   "home": {
@@ -178,7 +194,10 @@
     "flipBack": "Înapoi la poză",
     "flip": "Vezi ingredientele pentru {name}",
     "flipBackLabel": "Înapoi la poza pentru {name}",
-    "noIngredientsShort": "Ingrediente netrecute"
+    "noIngredientsShort": "Ingrediente netrecute",
+    "marquee": "Gătit cu drag",
+    "stamp": "Gătit cu drag • Meniul de acasă • ",
+    "tagsLabel": "Etichete"
   },
   "admin": {
     "greeting": "Bună, {name}!",
@@ -257,7 +276,8 @@
       "off": "Sunet oprit",
       "blocked": "Atinge oriunde pe pagină ca să pornești sunetul."
     },
-    "tabsLabel": "Filtrează după stare"
+    "tabsLabel": "Filtrează după stare",
+    "printTicket": "Tipărește bonul comenzii #{number}"
   },
   "adminDishes": {
     "title": "Preparate",
@@ -288,11 +308,11 @@
       "photoInfo": "{width} × {height} px · {size}",
       "photoError": "Poza nu a putut fi citită. Încearcă alt fișier.",
       "photoTooLarge": "Fișierul e prea mare (max. 40 MB).",
-      "cookMinutes": "Timp estimat de gătit (minute)",
+      "cookMinutes": "Timp estimat de gătit (minute, opțional)",
       "availableToday": "Disponibil azi",
       "availableTodayHint": "Apare în meniul de azi pentru familie.",
       "ingredients": "Ingrediente",
-      "ingredientsHint": "Cantități pentru o porție. Lasă cantitatea goală pentru „după gust”.",
+      "ingredientsHint": "Cantități pentru toată rețeta. Lasă cantitatea goală dacă nu e precizată.",
       "ingredientName": "Ingredient",
       "ingredientPlaceholder": "ex. Orez",
       "quantity": "Cantitate",
@@ -323,7 +343,11 @@
         "uploadFailed": "Poza nu a putut fi încărcată. Verifică internetul și încearcă din nou.",
         "fixErrors": "Corectează câmpurile marcate."
       },
-      "unitSuggestions": "g,kg,ml,l,buc,lingură,linguri,linguriță,lingurițe,cană,căni,căței,legătură,praf"
+      "unitSuggestions": "g,kg,ml,l,buc,lingură,linguri,linguriță,lingurițe,cană,căni,căței,legătură,praf",
+      "meal": "Masa",
+      "mealNone": "Oricând",
+      "mealHint": "Folosită pentru orele limită de comandă din Setări.",
+      "tags": "Etichete"
     }
   },
   "adminMenu": {
@@ -346,13 +370,13 @@
   },
   "adminShopping": {
     "title": "Listă de cumpărături",
-    "description": "Calculată din comenzile acceptate și din cele de pe foc.",
+    "description": "Calculată din comenzile acceptate și din cele de pe foc: o rețetă întreagă pentru fiecare fel comandat.",
     "empty": "Nicio comandă acceptată acum, deci nu e nimic de cumpărat.",
     "toBuy": "De cumpărat",
     "bought": "Cumpărate",
     "forDishes": "pentru {dishes}",
-    "dishQuantity": "{name} × {quantity}",
-    "toTaste": "după gust",
+    "dishQuantity": "{name} ({quantity, plural, one {# porție comandată} few {# porții comandate} other {# de porții comandate}})",
+    "toTaste": "fără gramaj",
     "partial": "Ai luat {bought}; mai trebuie {missing}.",
     "markBought": "Am cumpărat {name}",
     "reset": "Resetează bifele",
@@ -407,9 +431,17 @@
       "lastOwner": "Trebuie să rămână cel puțin un proprietar.",
       "cannotChangeOwnRole": "Nu îți poți schimba propriul rol.",
       "notFound": "Utilizatorul nu mai există.",
-      "unknown": "Ceva n-a mers. Încearcă din nou."
+      "unknown": "Ceva n-a mers. Încearcă din nou.",
+      "cannotDisableSelf": "Nu îți poți dezactiva propriul cont.",
+      "invalidPhoto": "Poza nu a putut fi salvată. Încearcă alta."
     },
-    "createdAt": "Creat"
+    "createdAt": "Creat",
+    "activity": "Activitate",
+    "disabled": "Dezactivat",
+    "disable": "Dezactivează contul",
+    "enable": "Reactivează contul",
+    "disabledDone": "{name} a fost dezactivat și deconectat peste tot.",
+    "enabled": "{name} se poate conecta din nou."
   },
   "notifications": {
     "region": "Notificări",
@@ -443,6 +475,15 @@
     "test": {
       "title": "Notificările funcționează!",
       "body": "Așa vei afla când e gata mâncarea."
+    },
+    "broadcast": {
+      "title": "{title}",
+      "body": "{body}"
+    },
+    "chat_message": {
+      "title": "{from}",
+      "titleGroup": "{from} · Chatul familiei",
+      "body": "{preview}"
     }
   },
   "dish": {
@@ -450,8 +491,8 @@
     "cookTime": "Gata în aproximativ {minutes} min",
     "onMenu": "În meniul de azi",
     "ingredients": "Ingrediente",
-    "ingredientsHint": "pentru o porție",
-    "toTaste": "după gust",
+    "ingredientsHint": "pentru toată rețeta",
+    "toTaste": "fără gramaj",
     "noIngredients": "Ingredientele nu au fost trecute.",
     "notToday": "Preparatul nu e în meniul de azi, deci nu poate fi comandat acum.",
     "view3d": "Farfurie 3D",
@@ -474,7 +515,9 @@
     "submit": "Trimite comanda",
     "submitting": "Se trimite…",
     "sent": "Comanda a fost trimisă! Te anunțăm când e acceptată.",
-    "timeInvalid": "Alege o oră validă."
+    "timeInvalid": "Alege o oră validă.",
+    "closesAt": "Comenzile pentru acest fel se închid la {time}.",
+    "closed": "Comenzile pentru acest fel s-au închis la {time}. Revino mâine!"
   },
   "orders": {
     "title": "Comenzile mele",
@@ -571,5 +614,310 @@
     "downgraded": "Am trecut pe animații reduse pentru fluiditate",
     "undo": "Anulează",
     "saved": "Preferința a fost salvată."
+  },
+  "meals": {
+    "breakfast": "Mic dejun",
+    "lunch": "Prânz",
+    "dinner": "Cină"
+  },
+  "dishTags": {
+    "vegetarian": "Vegetarian",
+    "vegan": "Vegan",
+    "spicy": "Picant",
+    "soup": "Ciorbă / supă",
+    "main": "Fel principal",
+    "side": "Garnitură",
+    "salad": "Salată",
+    "dessert": "Desert",
+    "gluten_free": "Fără gluten",
+    "kids": "Pe placul copiilor"
+  },
+  "dietTags": {
+    "vegetarian": "Vegetarian",
+    "vegan": "Vegan",
+    "gluten_free": "Fără gluten",
+    "lactose_free": "Fără lactoză",
+    "nut_allergy": "Alergie la nuci",
+    "no_pork": "Fără porc",
+    "not_spicy": "Nimic picant"
+  },
+  "diet": {
+    "warning": "Alergii / regim"
+  },
+  "chat": {
+    "unread": "{count, plural, one {# mesaj necitit} few {# mesaje necitite} other {# de mesaje necitite}}",
+    "title": "Chat",
+    "description": "Vorbește cu toată familia sau cu o singură persoană.",
+    "conversations": "Conversații",
+    "group": "Chatul familiei",
+    "groupHint": "Toată familia",
+    "startHint": "Spune salut!",
+    "someone": "Cineva",
+    "you": "Tu",
+    "pick": "Alege o conversație din stânga.",
+    "back": "Înapoi la conversații",
+    "older": "Arată mesajele mai vechi",
+    "empty": "Niciun mesaj încă. Scrie-l pe primul!",
+    "placeholder": "Scrie un mesaj…",
+    "send": "Trimite",
+    "sendError": "Mesajul nu a putut fi trimis. Încearcă din nou."
+  },
+  "pushGate": {
+    "title": "Pornește notificările",
+    "text": "Bucătăria folosește notificările ca să-ți spună când e gata mâncarea și ca să trimită anunțuri. Pornește-le pe acest dispozitiv ca să continui.",
+    "deniedText": "Notificările sunt blocate pentru acest site. Permite-le din setările browserului, apoi verifică din nou.",
+    "stillBlocked": "Notificările sunt încă blocate.",
+    "checkAgain": "Le-am permis, verifică din nou",
+    "signOut": "Ieși din cont"
+  },
+  "planner": {
+    "title": "Planificarea meniului",
+    "description": "Planifică meniul cu zile înainte. Felurile planificate apar singure în meniu în ziua lor.",
+    "previousWeek": "Săptămâna trecută",
+    "nextWeek": "Săptămâna viitoare",
+    "thisWeek": "Săptămâna aceasta",
+    "copyLastWeek": "Copiază săptămâna trecută",
+    "copiedWeek": "{count, plural, =0 {Nimic nou de copiat din săptămâna trecută.} one {Am copiat # preparat din săptămâna trecută.} few {Am copiat # preparate din săptămâna trecută.} other {Am copiat # de preparate din săptămâna trecută.}}",
+    "copyToNextDay": "Copiază în ziua următoare",
+    "copiedDay": "{count, plural, =0 {Nimic nou de copiat.} one {Am copiat # preparat.} few {Am copiat # preparate.} other {Am copiat # de preparate.}}",
+    "dayActions": "Acțiuni pentru zi",
+    "edit": "Alege preparatele",
+    "editHint": "{count, plural, =0 {Nimic ales încă.} one {# preparat ales.} few {# preparate alese.} other {# de preparate alese.}} Modificările se salvează imediat.",
+    "remove": "Scoate {name} din această zi",
+    "empty": "Nimic planificat",
+    "clear": "Golește ziua",
+    "cleared": "Ziua a fost golită.",
+    "applyTemplate": "Folosește un șablon",
+    "templateApplied": "{count, plural, =0 {„{name}” nu a adăugat nimic nou.} one {Am adăugat # preparat din „{name}”.} few {Am adăugat # preparate din „{name}”.} other {Am adăugat # de preparate din „{name}”.}}",
+    "saveTemplate": "Salvează ca șablon",
+    "saveTemplateHint": "Salvează preparatele zilei ca să le refolosești, de ex. „Cina de duminică”.",
+    "templateName": "Numele șablonului",
+    "templateNamePlaceholder": "de ex. Cina de duminică",
+    "templateSaved": "Șablonul „{name}” a fost salvat.",
+    "templates": "Șabloane",
+    "templatesHint": "Meniuri gata făcute pe care le pui în orice zi din meniul ⋯ al zilei.",
+    "noTemplates": "Niciun șablon încă. Planifică o zi, apoi alege „Salvează ca șablon”.",
+    "deleteTemplate": "Șterge șablonul {name}",
+    "templateDeleted": "Șablonul a fost șters."
+  },
+  "history": {
+    "title": "Istoricul comenzilor",
+    "description": "Toate comenzile făcute vreodată. Filtrează după dată, persoană, preparat sau stare.",
+    "from": "De la",
+    "to": "Până la",
+    "person": "Persoana",
+    "everyone": "Toată lumea",
+    "dish": "Preparat",
+    "dishPlaceholder": "de ex. sarmale",
+    "status": "Starea",
+    "anyStatus": "Orice stare",
+    "apply": "Filtrează",
+    "reset": "Șterge filtrele",
+    "showing": "{count, plural, =0 {Nicio comandă} one {# comandă afișată} few {# comenzi afișate} other {# de comenzi afișate}}",
+    "allTime": "Toată perioada",
+    "exportCsv": "Exportă CSV",
+    "print": "Tipărește / PDF",
+    "printTicket": "Tipărește bonul",
+    "empty": "Nicio comandă nu se potrivește filtrelor.",
+    "events": {
+      "created": "Comandată",
+      "accepted": "Acceptată",
+      "rejected": "Refuzată",
+      "cooking": "A început gătitul",
+      "extended": "Timp prelungit",
+      "ready": "Gata",
+      "handed_over": "Predată",
+      "cancelled": "Anulată"
+    }
+  },
+  "export": {
+    "columns": {
+      "number": "Număr",
+      "placed": "Plasată",
+      "client": "Persoana",
+      "dish": "Preparat",
+      "quantity": "Porții",
+      "status": "Starea",
+      "requested": "Dorită pentru",
+      "notes": "Observații",
+      "reason": "Motivul refuzului",
+      "ready": "Gata la",
+      "handedOver": "Predată la"
+    },
+    "shopping": {
+      "item": "Produs",
+      "quantity": "Cantitate",
+      "unit": "Unitate",
+      "dishes": "Pentru",
+      "bought": "Cumpărat"
+    }
+  },
+  "print": {
+    "print": "Tipărește",
+    "pdfHint": "Pentru PDF, alege „Salvează ca PDF” ca imprimantă."
+  },
+  "stats": {
+    "title": "Statistici",
+    "description": "Cum merge bucătăria: comenzi pe zi, orele aglomerate și preparatele preferate.",
+    "range": "Perioada",
+    "lastDays": "Ultimele {days} zile",
+    "ordersValue": "{count, plural, one {# comandă} few {# comenzi} other {# de comenzi}}",
+    "portionsValue": "{count, plural, one {# porție} few {# porții} other {# de porții}}",
+    "minutes": "{minutes} min",
+    "tiles": {
+      "orders": "Comenzi",
+      "portions": "{count, plural, one {# porție} few {# porții} other {# de porții}}",
+      "people": "Persoane care au comandat",
+      "avgReady": "Așteptare medie",
+      "avgReadyNote": "de la comandă până la „Gata!”",
+      "handedOver": "Predate",
+      "rejectedCancelled": "{rejected} refuzate · {cancelled} anulate"
+    },
+    "perDay": "Comenzi pe zi",
+    "byHour": "Orele cele mai aglomerate",
+    "hourRange": "{from}:00–{to}:00",
+    "topDishes": "Cele mai comandate preparate",
+    "topPeople": "Cine comandă cel mai des",
+    "empty": "Nicio comandă în această perioadă.",
+    "showTable": "Arată ca tabel"
+  },
+  "broadcasts": {
+    "title": "Anunțuri",
+    "description": "Trimite o notificare familiei, de exemplu „Cina e gata!”.",
+    "quickLabel": "Variante rapide",
+    "quick1": "Cina e gata!",
+    "quick2": "Meniul s-a schimbat",
+    "quick3": "Bucătăria e închisă azi",
+    "titleLabel": "Titlu",
+    "bodyLabel": "Mesaj",
+    "audience": "Cine îl primește",
+    "audiences": {
+      "everyone": "Toată lumea",
+      "clients": "Familia (clienții)",
+      "staff": "Bucătarii",
+      "people": "Alege persoanele"
+    },
+    "pushNote": "Ajunge ca notificare pe fiecare dispozitiv cu notificările pornite și ca banner în aplicație.",
+    "send": "Trimite anunțul",
+    "sent": "{count, plural, one {Trimis către # persoană.} few {Trimis către # persoane.} other {Trimis către # de persoane.}}",
+    "history": "Trimise recent",
+    "recipients": "{count, plural, one {# destinatar} few {# destinatari} other {# de destinatari}}",
+    "none": "Niciun anunț încă."
+  },
+  "audit": {
+    "title": "Jurnal de activitate",
+    "description": "Cine a schimbat ce preparat, comandă, utilizator sau setare, și când.",
+    "filter": "Filtrează după tip",
+    "system": "Sistemul",
+    "to": "în",
+    "empty": "Nimic înregistrat încă.",
+    "older": "Intrări mai vechi",
+    "entities": {
+      "all": "Tot",
+      "dish": "Preparate",
+      "user": "Utilizatori",
+      "order": "Comenzi",
+      "template": "Șabloane",
+      "settings": "Setări",
+      "broadcast": "Anunțuri"
+    },
+    "actions": {
+      "dish": {
+        "insert": "A adăugat preparatul „{label}”",
+        "update": "A modificat preparatul „{label}”",
+        "delete": "A șters preparatul „{label}”"
+      },
+      "user": {
+        "insert": "A creat contul „{label}”",
+        "update": "A modificat contul „{label}”",
+        "delete": "A șters contul „{label}”",
+        "password_reset": "A resetat parola lui „{label}”"
+      },
+      "template": {
+        "insert": "A salvat șablonul „{label}”",
+        "update": "A modificat șablonul „{label}”",
+        "delete": "A șters șablonul „{label}”"
+      },
+      "settings": {
+        "update": "A modificat setările bucătăriei"
+      },
+      "broadcast": {
+        "insert": "A trimis anunțul „{label}”"
+      }
+    },
+    "fields": {
+      "name": "Nume",
+      "description": "Descriere",
+      "cook_minutes": "Timp de gătire",
+      "available_on": "În meniu pe",
+      "archived_at": "Arhivat",
+      "tags": "Etichete",
+      "meal": "Masa",
+      "display_name": "Nume",
+      "username": "Nume de utilizator",
+      "role": "Rol",
+      "allergies": "Alergii",
+      "diet_tags": "Regim",
+      "avatar_path": "Poză de profil",
+      "disabled_at": "Dezactivat",
+      "require_push": "Notificări obligatorii",
+      "cutoff_breakfast": "Limită mic dejun",
+      "cutoff_lunch": "Limită prânz",
+      "cutoff_dinner": "Limită cină",
+      "cutoff_all": "Ultimele comenzi",
+      "dish_ids": "Preparate",
+      "title": "Titlu",
+      "body": "Mesaj",
+      "audience": "Destinatari",
+      "recipient_count": "Număr de destinatari"
+    }
+  },
+  "userActivity": {
+    "back": "Înapoi la utilizatori",
+    "never": "niciodată",
+    "lastSignIn": "Ultima conectare: {when}",
+    "member": "cont creat {when}",
+    "orders": "Comenzi",
+    "portions": "Porții",
+    "handedOver": "Predate",
+    "rejectedCancelled": "Refuzate sau anulate",
+    "favourites": "Preparate preferate",
+    "recent": "Ultimele comenzi",
+    "allOrders": "Toate comenzile",
+    "noOrders": "Nicio comandă încă."
+  },
+  "avatar": {
+    "title": "Poza de profil",
+    "description": "Apare în chat, în bara de meniu și pe comenzi.",
+    "choose": "Alege o poză",
+    "change": "Schimbă poza",
+    "remove": "Șterge",
+    "saved": "Poza de profil a fost salvată.",
+    "removed": "Poza de profil a fost ștearsă.",
+    "tooLarge": "Fișierul e prea mare (max. 40 MB).",
+    "error": "Poza nu a putut fi citită. Încearcă alt fișier."
+  },
+  "dietEditor": {
+    "title": "Alergii și regim",
+    "description": "Bucătăria vede asta cu litere mari, roșii, pe fiecare comandă pe care o faci.",
+    "ownerDescription": "Apare cu roșu pe comenzile și bonurile acestei persoane.",
+    "tags": "Regim",
+    "allergies": "Alergii și alte observații",
+    "allergiesPlaceholder": "de ex. alergic la arahide, fără ciuperci",
+    "saved": "Salvat."
+  },
+  "kitchen": {
+    "title": "Bucătăria",
+    "description": "Orele limită de comandă și regulile pentru notificări, pentru toată lumea.",
+    "saved": "Setările bucătăriei au fost salvate.",
+    "cutoffs": "Ore limită de comandă",
+    "cutoffsHint": "După această oră, felurile de azi pentru masa respectivă nu mai pot fi comandate. Alege masa la fiecare preparat. Lasă gol pentru fără limită.",
+    "cutoffBreakfast": "Mic dejun",
+    "cutoffLunch": "Prânz",
+    "cutoffDinner": "Cină",
+    "cutoffAll": "Ultimele comenzi (toate felurile)",
+    "noLimit": "Fără limită",
+    "requirePush": "Notificări obligatorii",
+    "requirePushHint": "Toată lumea trebuie să pornească notificările înainte să folosească aplicația. Browserele care nu pot primi notificări (de ex. Safari pe iPhone în afara aplicației instalate) sunt lăsate să treacă."
   }
 }

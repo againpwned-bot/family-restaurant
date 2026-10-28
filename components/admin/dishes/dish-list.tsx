@@ -20,7 +20,7 @@ export type DishListItem = {
   description: string;
   photo_path: string | null;
   photo_blur: string | null;
-  cook_minutes: number;
+  cook_minutes: number | null;
   onMenu: boolean;
   ingredientCount: number;
 };
@@ -34,7 +34,7 @@ export function DishList({ dishes }: { dishes: DishListItem[] }) {
 
   if (!dishes.length) {
     return (
-      <div className="grid place-items-center gap-4 rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+      <div className="grid place-items-center gap-4 rounded-[1.75rem] border-2 border-dashed border-line/50 bg-card px-6 py-16 text-center">
         <p className="max-w-sm text-muted-foreground">{t("adminDishes.empty")}</p>
         <Button asChild size="lg">
           <Link href="/admin/dishes/new">
@@ -88,7 +88,7 @@ export function DishList({ dishes }: { dishes: DishListItem[] }) {
               <Link
                 href={`/admin/dishes/${dish.id}`}
                 aria-label={t("adminDishes.editDish", { name: dish.name })}
-                className="hover-overlay group flex gap-3 overflow-hidden rounded-2xl border border-border bg-card p-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:flex-col sm:p-0"
+                className="hover-overlay group flex gap-3 overflow-hidden rounded-[1.5rem] bg-card sticker p-2 outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:flex-col sm:p-0"
               >
                 <div className="relative aspect-square w-20 shrink-0 overflow-hidden rounded-xl bg-muted sm:aspect-[4/3] sm:w-full sm:rounded-none">
                   <DishPhoto
@@ -104,10 +104,12 @@ export function DishList({ dishes }: { dishes: DishListItem[] }) {
                 <div className="min-w-0 flex-1 py-1 pr-2 sm:p-4 sm:pt-1">
                   <p className="truncate font-heading text-lg font-bold">{dish.name}</p>
                   <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                    <span className="inline-flex items-center gap-1">
-                      <Clock className="size-3.5" aria-hidden="true" />
-                      {t("common.minutesShort", { minutes: dish.cook_minutes })}
-                    </span>
+                    {dish.cook_minutes !== null ? (
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="size-3.5" aria-hidden="true" />
+                        {t("common.minutesShort", { minutes: dish.cook_minutes })}
+                      </span>
+                    ) : null}
                     <span>{t("adminDishes.ingredientsCount", { count: dish.ingredientCount })}</span>
                   </p>
                   {dish.onMenu ? (

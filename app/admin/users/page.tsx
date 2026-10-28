@@ -17,9 +17,10 @@ export default async function AdminUsersPage() {
   const me = await requireProfile({ roles: ["owner"] });
   const t = await getTranslations("adminUsers");
   const data = await asUser(me.id, (tx) =>
-    rows<Pick<Profile, "id" | "username" | "display_name" | "role" | "created_at">>(
+    rows<Pick<Profile, "id" | "username" | "display_name" | "role" | "created_at" | "avatar_path" | "disabled_at">>(
       tx,
-      "select id, username, display_name, role, created_at from public.profiles order by created_at",
+      `select id, username, display_name, role, created_at, avatar_path, disabled_at
+         from public.profiles order by disabled_at nulls first, created_at`,
     ),
   );
 

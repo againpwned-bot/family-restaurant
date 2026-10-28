@@ -1,11 +1,5 @@
 "use client";
 
-// Desktop-full only: the dish photo on a slowly turning 3D plate. A ceramic
-// plate (lathe) + a slightly domed disc wearing the photo; 2 lights, ~8k
-// triangles, one ~1080px texture (WebP/AVIF via the Next image optimizer),
-// disposed on unmount. It fades in over the static photo once ready, so it
-// never affects LCP.
-
 import { useFrame } from "@react-three/fiber";
 import { getImageProps } from "next/image";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -25,7 +19,6 @@ function usePhotoTexture(photoPath: string) {
       if (cancelled) return t.dispose();
       t.colorSpace = THREE.SRGBColorSpace;
       t.anisotropy = 4;
-      // Cover-crop the photo into the circle.
       const img = t.image as { width: number; height: number };
       const aspect = img.width / img.height;
       if (aspect > 1) {
@@ -51,7 +44,6 @@ function Plate({ photoPath }: { photoPath: string }) {
   const group = useRef<THREE.Group>(null);
 
   const plateGeometry = useMemo(() => {
-    // Rim profile: flat base, curved lip.
     const pts = [
       new THREE.Vector2(0, 0),
       new THREE.Vector2(1.55, 0),
@@ -67,7 +59,6 @@ function Plate({ photoPath }: { photoPath: string }) {
   }, []);
 
   const foodGeometry = useMemo(() => {
-    // A gentle dome so the food catches the light ("slight displacement").
     const g = new THREE.CircleGeometry(1.5, 96, 0, Math.PI * 2);
     const pos = g.attributes.position;
     for (let i = 0; i < pos.count; i++) {
@@ -105,7 +96,6 @@ function Plate({ photoPath }: { photoPath: string }) {
     const g = group.current;
     if (!g) return;
     g.rotation.y += Math.min(delta, 0.05) * 0.22;
-    // Tilted toward the camera (we look at the food from above), cursor parallax.
     g.rotation.x += (0.85 - state.pointer.y * 0.15 - g.rotation.x) * 0.05;
     g.position.x += (state.pointer.x * 0.25 - g.position.x) * 0.05;
   });

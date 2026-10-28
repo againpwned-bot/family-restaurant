@@ -1,9 +1,3 @@
-// Applies db/bootstrap.sql and every migration to an in-memory database
-// (the same code path the app uses), then checks row level security, the order
-// flow, the admin helpers, push announcements and the live-update feed.
-//
-//   npm run test:db
-
 import { openDatabase } from "../../lib/server/database";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -24,7 +18,6 @@ insert into public.profiles (id, username, display_name, role) values
 
 let failures = 0;
 type Who = keyof typeof ids | "anon";
-// Same as withUser() in lib/server/database.ts; "anon" = a role with no rights at all.
 async function as(who: Who, sql: string, params: unknown[] = []): Promise<{ rows: any[] }> {
   return db.transaction(async (tx) => {
     if (who === "anon") {
@@ -44,7 +37,7 @@ async function expectOk(label: string, who: Who, sql: string, params?: unknown[]
   } catch (e) {
     failures++;
     console.log("  FAIL", label, "->", (e as Error).message);
-    return { rows: [{}] }; // later checks fail instead of crashing
+    return { rows: [{}] };
   }
 }
 async function expectErr(label: string, who: Who, sql: string, match: string, params?: unknown[]) {
@@ -313,6 +306,90 @@ check("test notification created", r.rows[0].n === 1);
 await new Promise((resolve) => setTimeout(resolve, 50));
 check("test notification is pushed", pushed.length === 1);
 await expectErr("nobody calls the push trigger directly", "c1", `select public.notifications_send_push()`, "permission denied");
+
+
+console.log("\n== menu planner");
+const planDish = (await db.query<any>(`insert into public.dishes (name) values ('Tochitură') returning id`)).rows[0].id;
+await expectErr("client cannot plan", "c1", `select public.set_menu_plan(public.today_local() + 1, $1, true)`, "forbidden", [planDish]);
+await expectErr("cannot plan the past", "admin", `select public.set_menu_plan(public.today_local() - 1, $1, true)`, "invalid_day", [planDish]);
+await expectOk("admin plans tomorrow", "admin", `select public.set_menu_plan(public.today_local() + 1, $1, true)`, [planDish]);
+r = await as("admin", `select count(*)::int as n from public.menu_plan where dish_id = $1`, [planDish]);
+check("plan row stored", r.rows[0].n === 1);
+await expectOk("planning today puts it on today's menu", "admin", `select public.set_menu_plan(public.today_local(), $1, true)`, [planDish]);
+r = await db.query<any>(`select available_on = public.today_local() as today from public.dishes where id = $1`, [planDish]);
+check("today's plan mirrors available_on", r.rows[0].today === true);
+await expectOk("unticking from the menu board", "admin", `select public.set_dish_available_today($1, false)`, [planDish]);
+r = await db.query<any>(`select count(*)::int as n from public.menu_plan where dish_id = $1 and day = public.today_local()`, [planDish]);
+check("today's plan row removed with it", r.rows[0].n === 0);
+r = await as("c1", `select count(*)::int as n from public.menu_plan`);
+check("clients can't see the plan", r.rows[0].n === 0);
+await db.query(`update public.dishes set available_on = null where id = $1`, [planDish]);
+await db.query(`insert into public.menu_plan (day, dish_id) values (public.today_local(), $1)`, [planDish]);
+r = await db.query<any>(`select internal.apply_menu_plan() as n`);
+check("day rollover applies today's plan", r.rows[0].n === 1);
+await expectOk("copy a day forward", "admin", `select public.copy_menu_days(public.today_local(), public.today_local() + 7, 1)`);
+r = await db.query<any>(`select count(*)::int as n from public.menu_plan where day = public.today_local() + 7`);
+check("copied day has dishes", r.rows[0].n >= 1);
+const tpl = (await expectOk("save template", "admin", `select * from public.save_menu_template('Duminică', public.today_local())`)).rows[0];
+check("template keeps dishes", Array.isArray(tpl.dish_ids) && tpl.dish_ids.length >= 1);
+await expectErr("empty day can't be a template", "admin", `select public.save_menu_template('Gol', public.today_local() + 20)`, "menu_empty");
+await expectOk("apply template", "admin", `select public.apply_menu_template($1, public.today_local() + 3)`, [tpl.id]);
+await expectOk("clear future day", "admin", `select public.clear_menu_day(public.today_local() + 3)`);
+
+console.log("\n== tags, cut-offs, settings");
+await expectOk("admin sets tags + meal", "admin", `select public.set_dish_details($1, array['spicy','main','spicy'], 'lunch')`, [d1]);
+r = await db.query<any>(`select tags, meal from public.dishes where id = $1`, [d1]);
+check("tags deduped, meal saved", JSON.stringify(r.rows[0].tags) === '["main","spicy"]' && r.rows[0].meal === "lunch");
+await expectErr("unknown tag rejected", "admin", `select public.set_dish_details($1, array['pizza'], null)`, "dishes_tags_valid", [d1]);
+await expectErr("client cannot change settings", "c1", `select public.save_app_settings(true, null, null, null, null)`, "forbidden");
+await expectOk("admin closes lunch orders at 00:00", "admin", `select public.save_app_settings(true, null, '00:00', null, null)`);
+r = await as("c1", `select cutoff_lunch from public.app_settings`);
+check("clients can read cut-offs", r.rows[0].cutoff_lunch !== null);
+await expectErr("lunch dish can't be ordered after its cut-off", "c1", `select public.place_order($1, 1)`, "ordering_closed", [d1]);
+await expectOk("remove the cut-off", "admin", `select public.save_app_settings(true, null, null, null, null)`);
+
+console.log("\n== deactivated accounts");
+await db.query(`update public.profiles set disabled_at = now() where id = $1`, [ids.c2]);
+await expectErr("deactivated client can't order", "c2", `select public.place_order($1, 1)`, "forbidden", [d1]);
+await expectErr("deactivated client can't chat", "c2", `select public.send_chat_message(null, 'hei')`, "forbidden");
+await db.query(`update public.profiles set disabled_at = null where id = $1`, [ids.c2]);
+
+console.log("\n== chat");
+await db.query(`delete from public.notifications`);
+const group = (await expectOk("client writes in the family chat", "c1", `select * from public.send_chat_message(null, '  Bună!  ')`)).rows[0];
+check("group message trimmed", group.conversation === "all" && group.body === "Bună!");
+r = await db.query<any>(`select count(*)::int as n from public.notifications where type = 'chat_message'`);
+check("everyone else is notified", r.rows[0].n === 3, JSON.stringify(r.rows));
+const dm = (await expectOk("client writes privately to admin", "c1", `select * from public.send_chat_message($1, 'Salut')`, [ids.admin])).rows[0];
+check("dm conversation id is sorted", dm.conversation === `dm:${ids.admin}:${ids.c1}`);
+r = await as("c2", `select count(*)::int as n from public.chat_messages where conversation like 'dm:%'`);
+check("others can't read a private conversation", r.rows[0].n === 0);
+r = await as("admin", `select count(*)::int as n from public.chat_messages`);
+check("both sides read it", r.rows[0].n === 2);
+await expectErr("can't message yourself", "c1", `select public.send_chat_message($1, 'eu')`, "user_not_found", [ids.c1]);
+await expectErr("empty message rejected", "c1", `select public.send_chat_message(null, '   ')`, "invalid_message");
+await expectErr("can't mark a foreign conversation read", "c2", `select public.mark_chat_read($1)`, "forbidden", [dm.conversation]);
+await expectOk("admin marks it read", "admin", `select public.mark_chat_read($1)`, [dm.conversation]);
+r = await as("admin", `select count(*)::int as n from public.notifications where type = 'chat_message' and read_at is null and payload->>'conversation' = $1`, [dm.conversation]);
+check("its notifications are read too", r.rows[0].n === 0);
+
+console.log("\n== announcements");
+await db.query(`delete from public.notifications`);
+await expectErr("clients can't broadcast", "c1", `select public.send_broadcast('x', '', 'everyone')`, "forbidden");
+const b = (await expectOk("admin broadcasts to clients", "admin", `select * from public.send_broadcast('Cina e gata!', 'Hai la masă', 'clients')`)).rows[0];
+check("owner + clients get it", b.recipient_count === 3, JSON.stringify(b));
+await expectOk("admin messages one person", "admin", `select * from public.send_broadcast('Hei', '', 'people', array[$1]::uuid[])`, [ids.c2]);
+await expectErr("nobody to send to", "admin", `select public.send_broadcast('Hei', '', 'people', '{}')`, "no_recipients");
+
+console.log("\n== avatars + audit log");
+await expectOk("user sets own avatar", "c1", `select public.set_avatar(auth.uid(), 'abc.webp')`);
+await expectErr("client can't set someone else's", "c1", `select public.set_avatar($1, 'abc.webp')`, "forbidden", [ids.c2]);
+await expectOk("owner sets anyone's", "owner", `select public.set_avatar($1, 'def.webp')`, [ids.c2]);
+await expectErr("bad avatar path rejected", "c1", `select public.set_avatar(auth.uid(), '../x.png')`, "profiles_avatar_path_format");
+r = await as("owner", `select actor_id, action, changes from public.audit_log where entity = 'dish' and entity_id = $1 order by id desc limit 1`, [d1]);
+check("dish change audited with its actor", r.rows[0]?.actor_id === ids.admin && "meal" in r.rows[0].changes, JSON.stringify(r.rows));
+r = await as("admin", `select count(*)::int as n from public.audit_log`);
+check("only the owner reads the audit log", r.rows[0].n === 0);
 
 console.log(failures ? `\n${failures} FAILURE(S)` : "\nALL CHECKS PASSED");
 await db.close();

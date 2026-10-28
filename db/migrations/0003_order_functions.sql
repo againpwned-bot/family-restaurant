@@ -1,16 +1,3 @@
--- Meniul de acasă: order status machine + notifications.
---
---   received -> accepted -> cooking -> ready -> handed_over
---   received | accepted -> rejected            (admin, optional reason)
---   received | accepted -> cancelled           (client, only before cooking)
---
--- Every function raises an exception whose MESSAGE is a stable machine key
--- (e.g. 'dish_unavailable'); the app maps those keys to translated text.
-
--- ---------------------------------------------------------------------------
--- Internal helpers
--- ---------------------------------------------------------------------------
-
 create or replace function public._require_staff()
 returns void
 language plpgsql
@@ -35,7 +22,6 @@ as $$
   values (p_order_id, auth.uid(), p_kind, coalesce(p_data, '{}'::jsonb));
 $$;
 
--- Moves an order from one of `p_from` to `p_to`, or explains why it cannot.
 create or replace function public._order_for_transition(p_order_id uuid, p_from public.order_status[])
 returns public.orders
 language plpgsql
@@ -56,10 +42,6 @@ begin
   return v_order;
 end;
 $$;
-
--- ---------------------------------------------------------------------------
--- Client actions
--- ---------------------------------------------------------------------------
 
 create or replace function public.place_order(
   p_dish_id uuid,
@@ -138,7 +120,6 @@ begin
   if not found then
     raise exception 'order_not_found' using errcode = 'P0002';
   end if;
-  -- Once the pot is on the stove it can no longer be cancelled.
   if v_order.status not in ('received', 'accepted') then
     raise exception 'cannot_cancel' using errcode = 'P0001';
   end if;
@@ -152,10 +133,6 @@ begin
   return v_order;
 end;
 $$;
-
--- ---------------------------------------------------------------------------
--- Admin actions
--- ---------------------------------------------------------------------------
 
 create or replace function public.accept_order(p_order_id uuid, p_minutes integer)
 returns public.orders
@@ -254,7 +231,6 @@ begin
   end if;
   perform public._order_for_transition(p_order_id, array['accepted', 'cooking']::public.order_status[]);
 
-  -- If the timer already ran out, extend from now rather than from the past.
   update public.orders
      set eta_at = greatest(coalesce(eta_at, now()), now()) + make_interval(mins => p_minutes),
          timer_minutes = least(coalesce(timer_minutes, 0) + p_minutes, 720)
@@ -311,11 +287,6 @@ begin
   return v_order;
 end;
 $$;
-
--- ---------------------------------------------------------------------------
--- Notifications: created from order changes, one row per recipient.
--- The person who caused the change is never notified about it.
--- ---------------------------------------------------------------------------
 
 create or replace function public.orders_create_notifications()
 returns trigger
@@ -396,12 +367,6 @@ create trigger orders_notify_update
   after update of status, eta_at on public.orders
   for each row execute function public.orders_create_notifications();
 
--- ---------------------------------------------------------------------------
--- Web Push subscriptions
--- ---------------------------------------------------------------------------
-
--- A browser endpoint belongs to whoever is signed in on it right now: if the
--- sister signs in on dad's phone, the endpoint moves to her account.
 create or replace function public.register_push_subscription(
   p_endpoint text,
   p_p256dh text,
@@ -431,10 +396,6 @@ begin
         failure_count = 0;
 end;
 $$;
-
--- ---------------------------------------------------------------------------
--- Function privileges: nothing for anon, explicit list for authenticated.
--- ---------------------------------------------------------------------------
 
 revoke execute on all functions in schema public from public, anon, authenticated;
 

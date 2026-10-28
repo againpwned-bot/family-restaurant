@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import { useAnimation } from "@/components/providers/animation-provider";
 import { useSkipEntrance } from "@/hooks/use-entrance";
 
-/** Entrance for every page (used by template.tsx); transform + opacity only. */
 export function PageTransition({ children }: { children: ReactNode }) {
   const { tier } = useAnimation();
   const skip = useSkipEntrance();

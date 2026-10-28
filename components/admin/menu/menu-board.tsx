@@ -6,13 +6,7 @@ import { useTranslations } from "next-intl";
 import { useCallback, useState, useTransition } from "react";
 import { toast } from "sonner";
 
-
-import {
-  clearTodayMenu,
-  copyYesterdayMenu,
-  fetchMenuBoard,
-  setDishAvailableToday,
-} from "@/app/actions/dishes";
+import { clearTodayMenu, copyYesterdayMenu, fetchMenuBoard, setDishAvailableToday } from "@/app/actions/dishes";
 import { DishPhoto } from "@/components/dish/dish-photo";
 import {
   AlertDialog,
@@ -39,7 +33,7 @@ export type MenuDish = {
   name: string;
   photo_path: string | null;
   photo_blur: string | null;
-  cook_minutes: number;
+  cook_minutes: number | null;
   available_on: string | null;
 };
 
@@ -89,7 +83,7 @@ export function MenuBoard({ initialDishes, today }: { initialDishes: MenuDish[];
 
   if (!dishes.length) {
     return (
-      <div className="grid place-items-center gap-4 rounded-2xl border border-dashed border-border bg-card px-6 py-16 text-center">
+      <div className="grid place-items-center gap-4 rounded-[1.75rem] border-2 border-dashed border-line/50 bg-card px-6 py-16 text-center">
         <p className="max-w-sm text-muted-foreground">{t("adminMenu.empty")}</p>
         <Button asChild size="lg">
           <Link href="/admin/dishes/new">
@@ -103,7 +97,7 @@ export function MenuBoard({ initialDishes, today }: { initialDishes: MenuDish[];
 
   return (
     <div className="grid grid-cols-1 gap-5">
-      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-[1.5rem] bg-card sticker p-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-lg font-bold" role="status" aria-live="polite">
           <span
             className={cn(
@@ -197,10 +191,12 @@ export function MenuBoard({ initialDishes, today }: { initialDishes: MenuDish[];
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block truncate font-heading text-lg font-bold">{dish.name}</span>
-                  <span className="flex items-center gap-1 text-sm text-muted-foreground">
-                    <Clock className="size-3.5" aria-hidden="true" />
-                    {t("common.minutesShort", { minutes: dish.cook_minutes })}
-                  </span>
+                  {dish.cook_minutes !== null ? (
+                    <span className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <Clock className="size-3.5" aria-hidden="true" />
+                      {t("common.minutesShort", { minutes: dish.cook_minutes })}
+                    </span>
+                  ) : null}
                 </span>
                 <Switch
                   id={switchId}

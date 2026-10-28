@@ -1,14 +1,7 @@
 "use client";
 
-// Reference only (from the component's original demo); not used by any page.
-// The real menu wheel is built from today's dishes on the client home page.
-
 import { WorksWheel, type WorksWheelItem } from "@/components/ui/works-wheel";
 
-// Placeholder art served straight off the crafterui CDN so the demo works the
-// moment it is installed - no assets to copy into your public/. Swap the names
-// and the titles for your own index - the wheel sizes its ring to however many
-// pieces it is handed.
 const ART = (name: string) => `https://www.crafterui.com/art/${name}.jpg`;
 
 const WORKS: WorksWheelItem[] = [

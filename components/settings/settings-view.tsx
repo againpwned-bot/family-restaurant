@@ -1,4 +1,4 @@
-import { BellRing, KeyRound, Languages, Palette, Sparkles, UserRound } from "lucide-react";
+import { BellRing, Camera, KeyRound, Languages, Palette, Sparkles, UserRound, Wheat } from "lucide-react";
 import { cookies } from "next/headers";
 import { getTranslations } from "next-intl/server";
 import type { ReactNode } from "react";
@@ -6,12 +6,12 @@ import type { ReactNode } from "react";
 import { PageHeader } from "@/components/layout/page-header";
 import { PushToggle } from "@/components/notifications/push-toggle";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
+import { MyAvatarSetting, MyDietSetting } from "@/components/settings/profile-settings";
 import { AnimationSetting, LanguageSetting, ThemeSetting } from "@/components/settings/preference-switchers";
 import type { Profile } from "@/lib/types";
 import { THEME_COOKIE, resolveTheme } from "@/lib/theme";
 
-/** Shared by /settings (client side) and /admin/settings. */
-export async function SettingsView({ profile }: { profile: Profile }) {
+export async function SettingsView({ profile, extra }: { profile: Profile; extra?: ReactNode }) {
   const t = await getTranslations();
   const theme = resolveTheme((await cookies()).get(THEME_COOKIE)?.value);
 
@@ -27,6 +27,10 @@ export async function SettingsView({ profile }: { profile: Profile }) {
               <dt className="text-muted-foreground">{t("settings.account.role")}</dt>
               <dd className="font-semibold">{t(`roles.${profile.role}`)}</dd>
             </dl>
+          </Section>
+
+          <Section icon={<Camera />} title={t("avatar.title")} description={t("avatar.description")}>
+            <MyAvatarSetting name={profile.display_name} path={profile.avatar_path} />
           </Section>
 
           <Section
@@ -47,8 +51,12 @@ export async function SettingsView({ profile }: { profile: Profile }) {
         </div>
 
         <div className="grid gap-4 lg:gap-6">
+          {extra}
           <Section icon={<BellRing />} title={t("push.title")} description={t("push.description")}>
             <PushToggle />
+          </Section>
+          <Section icon={<Wheat />} title={t("dietEditor.title")} description={t("dietEditor.description")}>
+            <MyDietSetting allergies={profile.allergies} tags={profile.diet_tags} />
           </Section>
           <Section
             icon={<KeyRound />}
@@ -63,7 +71,7 @@ export async function SettingsView({ profile }: { profile: Profile }) {
   );
 }
 
-function Section({
+export function Section({
   icon,
   title,
   description,
@@ -77,7 +85,7 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section className={`rounded-2xl border border-border bg-card p-5 sm:p-6 ${className ?? ""}`}>
+    <section className={`rounded-[1.5rem] bg-card sticker p-5 sm:p-6 ${className ?? ""}`}>
       <div className="mb-4 flex items-start gap-3">
         <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-secondary text-secondary-foreground [&_svg]:size-5">
           {icon}

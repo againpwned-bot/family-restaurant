@@ -1,27 +1,21 @@
 "use client";
 
-// Desktop-full order timer: a torus whose gold part grows with the elapsed
-// time (fragment shader, no geometry rebuilds) and a fake bloom - an additive,
-// soft radial sprite behind it, no post-processing. frameloop="demand": one
-// frame per second (progress tick) or when the cursor moves.
-
 import { useFrame, useThree } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 import { CanvasShell } from "@/components/three/canvas-shell";
 
-const ringVertex = /* glsl */ `
+const ringVertex = `
   varying vec2 vUv;
   void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }
 `;
-const ringFragment = /* glsl */ `
+const ringFragment = `
   uniform float uProgress;
   uniform vec3 uFill;
   uniform vec3 uTrack;
   varying vec2 vUv;
   void main() {
-    // uv.x runs once around the ring; start at 12 o'clock, go clockwise.
     float a = fract(0.25 - vUv.x);
     float lit = step(a, uProgress);
     float shade = 0.75 + 0.25 * sin(vUv.y * 6.2831);

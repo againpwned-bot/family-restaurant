@@ -1,7 +1,3 @@
-/* Meniul de acasă service worker: Web Push only (no offline caching, so the
-   app never shows stale menus or orders). Notification texts arrive already
-   rendered (in the recipient's language) by the app server (lib/server/push.ts). */
-
 self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
@@ -16,8 +12,6 @@ self.addEventListener("push", (event) => {
       }
       if (!data.title) return;
 
-      // The app is open and in front: the in-app banner (realtime) already
-      // shows it, so don't add a second, system notification.
       const windows = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
       if (windows.some((client) => client.visibilityState === "visible" && client.focused)) return;
 
@@ -54,8 +48,6 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-// The browser rotated the subscription: register the new one for whoever is
-// signed in (the request carries the session cookie).
 self.addEventListener("pushsubscriptionchange", (event) => {
   event.waitUntil(
     (async () => {

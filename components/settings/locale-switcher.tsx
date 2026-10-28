@@ -7,7 +7,6 @@ import { setLocale } from "@/app/actions/preferences";
 import { LOCALES } from "@/i18n/config";
 import { cn } from "@/lib/utils";
 
-/** Compact RO / EN segmented switch. */
 export function LocaleSwitcher({ className }: { className?: string }) {
   const locale = useLocale();
   const t = useTranslations("common");
@@ -18,7 +17,7 @@ export function LocaleSwitcher({ className }: { className?: string }) {
       role="group"
       aria-label={t("language")}
       className={cn(
-        "inline-flex rounded-full border border-border bg-card p-0.5 text-xs font-bold tracking-wide",
+        "inline-flex rounded-full border-2 border-line bg-card p-0.5 text-xs font-bold tracking-wide",
         pending && "opacity-70",
         className,
       )}

@@ -1,6 +1,6 @@
 "use client";
 
-import { BellRing, CircleCheck, CircleX, Timer, X } from "lucide-react";
+import { BellRing, CircleCheck, CircleX, Megaphone, MessageCircle, Timer, X } from "lucide-react";
 import { AnimatePresence, m } from "motion/react";
 import { useRouter } from "next/navigation";
 import { useFormatter, useTranslations } from "next-intl";
@@ -9,10 +9,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { markNotificationRead } from "@/app/actions/notifications";
 import { Button } from "@/components/ui/button";
 import { useRealtime } from "@/hooks/use-realtime";
-import { chimeFor, notificationHref, renderNotification } from "@/lib/notifications";
+import { openConversation } from "@/lib/chat-focus";
+import { chimeFor, notificationHref, renderNotification, type NotificationPayload } from "@/lib/notifications";
 import { KITCHEN_TZ } from "@/lib/dates";
 import { playChime } from "@/lib/sound";
-import type { AppNotification, NotificationType } from "@/lib/types";
+import type { AppNotification, AppRole, NotificationType } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 const AUTO_HIDE_MS = 10_000;
@@ -26,14 +27,11 @@ const ICONS: Record<NotificationType, typeof BellRing> = {
   order_ready: CircleCheck,
   order_extended: Timer,
   test: BellRing,
+  broadcast: Megaphone,
+  chat_message: MessageCircle,
 };
 
-/**
- * In-app notifications: whenever a row lands in `notifications` for the
- * signed-in user (new order, cancellation, accepted, ready, ...), show a banner
- * and play a short chime. Works whether or not Web Push is enabled.
- */
-export function NotificationCenter({ userId }: { userId: string }) {
+export function NotificationCenter({ userId, role }: { userId: string; role: AppRole }) {
   const t = useTranslations("notifications");
   const format = useFormatter();
   const router = useRouter();
@@ -58,15 +56,15 @@ export function NotificationCenter({ userId }: { userId: string }) {
   useRealtime("notifications", [{ table: "notifications", filter: `recipient_id=eq.${userId}` }], (_table, payload) => {
     if (payload.eventType !== "INSERT") return;
     const n = payload.new as unknown as AppNotification;
-    // Ignore stale rows (e.g. delivered after a long reconnect).
     if (Date.now() - new Date(n.created_at).getTime() > 2 * 60_000) return;
+    window.dispatchEvent(new CustomEvent("app:notification", { detail: n }));
+    if (n.type === "chat_message" && (n.payload as NotificationPayload)?.conversation === openConversation()) return;
     setItems((list) => [n, ...list.filter((x) => x.id !== n.id)].slice(0, MAX_VISIBLE));
     playChime(chimeFor(n.type));
     timers.current.set(
       n.id,
       setTimeout(() => dismiss(n.id, false), AUTO_HIDE_MS),
     );
-    window.dispatchEvent(new CustomEvent("app:notification", { detail: n }));
   });
 
   const time = (iso: string) =>
@@ -91,7 +89,9 @@ export function NotificationCenter({ userId }: { userId: string }) {
               ? "bg-destructive/10 text-destructive"
               : n.type === "order_ready"
                 ? "bg-success-soft text-success"
-                : "bg-gold-soft text-gold-ink";
+                : n.type === "chat_message"
+                  ? "bg-secondary text-secondary-foreground"
+                  : "bg-gold-soft text-gold-ink";
           return (
             <m.div
               key={n.id}
@@ -100,14 +100,14 @@ export function NotificationCenter({ userId }: { userId: string }) {
               exit={{ opacity: 0, y: -12, scale: 0.98, transition: { duration: 0.15 } }}
               transition={{ type: "spring", stiffness: 200, damping: 24 }}
               role="status"
-              className="pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border border-border bg-popover p-3 pr-2 text-popover-foreground shadow-xl shadow-black/10"
+              className="pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border-2 border-line bg-popover p-3 pr-2 text-popover-foreground shadow-xl shadow-black/10"
             >
               <span className={cn("grid size-10 shrink-0 place-items-center rounded-xl", tone)}>
                 <Icon className="size-5" aria-hidden="true" />
               </span>
               <div className="min-w-0 flex-1 py-0.5">
                 <p className="font-bold leading-snug">{title}</p>
-                <p className="text-sm text-muted-foreground">{body}</p>
+                {body ? <p className="line-clamp-3 text-sm break-words text-muted-foreground">{body}</p> : null}
               </div>
               <div className="flex shrink-0 items-center gap-1">
                 <Button
@@ -115,7 +115,7 @@ export function NotificationCenter({ userId }: { userId: string }) {
                   variant="secondary"
                   onClick={() => {
                     dismiss(n.id);
-                    router.push(notificationHref(n));
+                    router.push(notificationHref(n, role));
                   }}
                 >
                   {t("view")}

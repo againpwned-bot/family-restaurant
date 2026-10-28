@@ -1,26 +1,12 @@
 "use client";
 
-// A portfolio index built as a wheel you turn.
-//
-// At rest the work sits in a ring around a title, each card tangent to the
-// circle. The first notch of scroll blows the ring open into a vertical drum:
-// the card at the front lies flat and full size, the ones above and below
-// rotate away into hard perspective and run off the top and bottom of the
-// frame. Keep turning and the drum carries the next piece round to the front.
-//
-// The whole thing is one number - `turn` - read by a single rAF pass that writes
-// transforms straight to the DOM. 0 is the ring, 1 is the drum with item 0 at
-// the front, and every whole number after that is one more item turned past.
 import * as React from "react";
 
 import { cn } from "@/lib/utils";
 
 export interface WorksWheelItem {
-  /** Project name. Shown beside the front card and in the index. */
   title: string;
-  /** Cover art. Any src an <img> takes. */
   image: string;
-  /** Where the card links to. Omit for a wheel that only browses. */
   href?: string;
 }
 
@@ -29,43 +15,27 @@ export interface WorksWheelProps extends Omit<
   "children"
 > {
   items: WorksWheelItem[];
-  /** Sits in the middle of the ring. @default undefined */
   label?: string;
-  /** Label on the card's hover affordance. Omit to drop it. @default undefined */
   action?: string;
 }
 
-/* Geometry. The card is measured against the stage; everything else is measured
-   against the card, so a narrow stage - where the card is capped by width, not
-   height - scales the whole wheel down with it instead of leaving a small card
-   swinging on a huge drum. The three that matter are tuned together: STEP
-   against DRUM sets how hard the neighbours rotate away, and DRUM against LENS
-   decides whether they land inside the frame or run off it. */
-const CARD_H = 0.38; // front card height, of the stage
-const CARD_MAX_W = 0.34; // ... but never wider than this much of the stage
-const CARD_RATIO = 1.45; // card width / height
-const STEP = 40; // degrees between cards on the drum
-const DRUM = 2.22; // drum radius, in card heights - and everything below likewise
-const LENS = 2.7; // perspective distance
-const RING_R = 1.14; // ring radius
-/* The drum alone hangs the work on a plumb line. It isn't one: the strip curves
-   away round an arc whose centre sits off to the LEFT, so the piece at the front
-   is at the arc's near point - dead centre - and its neighbours have already
-   swung back left as well as up and down. BOW is that arc's radius; nothing else
-   makes the difference between a stack of cards and a wheel seen side on. */
+const CARD_H = 0.38;
+const CARD_MAX_W = 0.34;
+const CARD_RATIO = 1.45;
+const STEP = 40;
+const DRUM = 2.22;
+const LENS = 2.7;
+const RING_R = 1.14;
 const BOW = 1.82;
-const TITLE = 0.124; // ring label and front-card title
-const INDEX = 0.04; // the index down the right-hand side
-/** Items either side of the front still worth drawing. Past this a card is
-    edge-on, and further round it would stack up on the vanishing point. */
+const TITLE = 0.124;
+const INDEX = 0.04;
 const CULL = 1.6;
+const MORPH_PUSH = 0.6;
+const SNAP = 0.12;
 
-/** How much of a wheel-notch or a dragged pixel counts as one item. */
 const WHEEL_UNITS = 900;
 const DRAG_UNITS = 420;
-/** Quiet time after the last wheel event before the wheel settles on an item. */
 const SETTLE = 140;
-/** Fraction of the remaining distance closed each frame. 1 = no smoothing. */
 const EASE = 0.12;
 
 const clamp = (v: number, lo: number, hi: number) =>
@@ -76,15 +46,9 @@ type Stage = { w: number; h: number };
 
 const rad = (deg: number) => (deg * Math.PI) / 180;
 
-/** How far left the arc has carried something that has turned `drumDeg` off the
-    front. Zero at the front, so the piece being read stays centred. */
 const bowAt = (drumDeg: number, bow: number) =>
   -bow * (1 - Math.cos(rad(drumDeg)));
 
-/** Both states in one chain: the ring terms fall away as `m` reaches the drum,
-    and the drum terms are still zero while the ring is up. The bow is applied
-    first, in the wheel's own plane, so it slides the card sideways rather than
-    turning with it - and perspective still shrinks it with distance. */
 function place(
   ringDeg: number,
   drumDeg: number,
@@ -92,9 +56,10 @@ function place(
   drumR: number,
   bow: number,
   m: number,
+  push = 0,
 ) {
   return (
-    `translateX(${m * bowAt(drumDeg, bow)}px)` +
+    `translateZ(${-push}px) translateX(${m * bowAt(drumDeg, bow)}px)` +
     ` rotateZ(${(1 - m) * ringDeg}deg) translateY(${-(1 - m) * ringR}px)` +
     ` rotateX(${m * drumDeg}deg) translateZ(${m * drumR}px)`
   );
@@ -113,8 +78,6 @@ export function WorksWheel({
   const labelRef = React.useRef<HTMLDivElement>(null);
   const titleRef = React.useRef<HTMLDivElement>(null);
 
-  // The wheel's position, and where it is heading. Only `active` is state -
-  // everything else is written to the DOM, so turning the wheel is not a render.
   const turn = React.useRef(0);
   const target = React.useRef(0);
   const [active, setActive] = React.useState(0);
@@ -123,9 +86,6 @@ export function WorksWheel({
   const count = items.length;
   const last = Math.max(count - 1, 0);
 
-  // Read after mount, not during render: the server has no matchMedia, and
-  // branching on it inline is a hydration mismatch. Reduced motion drops the
-  // easing, so the wheel lands where it is put instead of gliding there.
   const [reduced, setReduced] = React.useState(false);
   React.useEffect(() => {
     const query = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -151,8 +111,6 @@ export function WorksWheel({
     const cardH = cardW / CARD_RATIO;
     const drumR = cardH * DRUM;
     const ringR = cardH * RING_R;
-    // Shrink the ring's cards until the circle reads as a closed loop rather
-    // than beads on a wire, however many pieces the wheel is given.
     const ringScale = count
       ? clamp((((2 * Math.PI * ringR) / count) * 0.82) / (cardW || 1), 0.16, 1)
       : 1;
@@ -169,17 +127,12 @@ export function WorksWheel({
     };
   }, [stage, count]);
 
-  // Starts the frame loop if it isn't running. Set by the effect below; called
-  // by every input (wheel, drag, keys, index) through `to`.
   const kick = React.useRef<() => void>(() => {});
 
-  // One pass per frame: ease toward the target, then write every transform.
-  // The loop only runs while the wheel is moving: it stops once `turn` has
-  // reached `target`, restarts on input, and pauses while the tab is hidden.
   React.useEffect(() => {
     if (!stage.h) return;
     let frame = 0;
-    const { ringR, ringScale, drumR, bow } = metrics;
+    const { ringR, ringScale, drumR, bow, cardH } = metrics;
 
     const draw = () => {
       frame = 0;
@@ -191,9 +144,6 @@ export function WorksWheel({
       const m = clamp(t, 0, 1);
       const pos = Math.max(0, t - 1);
 
-      // The drum is pulled back so its front face lands on the picture plane.
-      // That set-back has to arrive with the drum, or the ring would sit at the
-      // far side of the perspective and render at half its size.
       if (wheelRef.current) {
         wheelRef.current.style.transform = `translateZ(${-m * drumR}px)`;
       }
@@ -210,10 +160,8 @@ export function WorksWheel({
             drumR,
             bow,
             m,
+            Math.min(Math.abs(d), 1) * 4 * m * (1 - m) * cardH * MORPH_PUSH,
           );
-          // Culled by distance, not by angle: at a full turn the far side comes
-          // back round to face us, and everything past the neighbours lands on
-          // the vanishing point in a heap.
           card.style.opacity = m > 0.5 && Math.abs(d) > CULL ? "0" : "1";
           card.style.zIndex = String(Math.round(100 - Math.abs(d) * 2));
         }
@@ -226,7 +174,6 @@ export function WorksWheel({
       const near = clamp(Math.round(pos), 0, last);
       setActive((prev) => (prev === near ? prev : near));
 
-      // Settled: this frame wrote the final transforms, nothing left to do.
       if (turn.current !== target.current && !document.hidden) {
         frame = requestAnimationFrame(draw);
       }
@@ -246,7 +193,7 @@ export function WorksWheel({
 
     kick.current = start;
     document.addEventListener("visibilitychange", onVisibility);
-    start(); // first layout (and again whenever the stage is re-measured)
+    start();
     return () => {
       kick.current = () => {};
       document.removeEventListener("visibilitychange", onVisibility);
@@ -262,9 +209,6 @@ export function WorksWheel({
     [last],
   );
 
-  // Native listener, because the wheel has to be cancellable - and it only
-  // cancels while it still has somewhere to go, so the page scrolls on at
-  // either end instead of trapping the reader.
   React.useEffect(() => {
     const el = stageRef.current;
     if (!el) return;
@@ -272,10 +216,6 @@ export function WorksWheel({
       const next = target.current + event.deltaY / WHEEL_UNITS;
       if (next > 0 && next < last + 1) event.preventDefault();
       to(next);
-      // A wheel gesture arrives as a burst of events with no end of its own, so
-      // the rest position is whatever notch it happened to stop on. Left there
-      // the drum sits between two cards - nothing at the front, and the pair
-      // either side of the gap both turned half away. Settle onto an item.
       window.clearTimeout(settling.current);
       settling.current = window.setTimeout(
         () => to(Math.round(target.current)),
@@ -290,7 +230,17 @@ export function WorksWheel({
   }, [to, last]);
 
   const drag = React.useRef<number | null>(null);
+  const dragFrom = React.useRef(0);
   const settling = React.useRef(0);
+
+  const release = () => {
+    if (drag.current === null) return;
+    drag.current = null;
+    const moved = target.current - dragFrom.current;
+    if (moved > SNAP) to(Math.ceil(target.current));
+    else if (moved < -SNAP) to(Math.floor(target.current));
+    else to(Math.round(target.current));
+  };
 
   return (
     <section
@@ -311,6 +261,7 @@ export function WorksWheel({
         style={{ perspective: `${metrics.depth}px` }}
         onPointerDown={(event) => {
           drag.current = event.clientY;
+          dragFrom.current = Math.round(target.current);
           event.currentTarget.setPointerCapture(event.pointerId);
         }}
         onPointerMove={(event) => {
@@ -318,11 +269,8 @@ export function WorksWheel({
           to(target.current + (drag.current - event.clientY) / DRAG_UNITS);
           drag.current = event.clientY;
         }}
-        onPointerUp={() => {
-          // Land on an item rather than between two.
-          drag.current = null;
-          if (target.current > 1) to(Math.round(target.current));
-        }}
+        onPointerUp={release}
+        onPointerCancel={release}
         onKeyDown={(event) => {
           if (event.key === "ArrowDown") to(Math.round(target.current) + 1);
           else if (event.key === "ArrowUp") to(Math.round(target.current) - 1);
@@ -355,7 +303,6 @@ export function WorksWheel({
                   }}
                 >
                   <span className="bg-muted shadow-foreground/12 relative block size-full overflow-hidden rounded-lg shadow-[0_18px_40px_-18px_var(--tw-shadow-color)]">
-                    {/* Callers pass pre-optimised URLs (next/image getImageProps). */}
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={item.image}
@@ -391,9 +338,6 @@ export function WorksWheel({
         </div>
       </div>
 
-      {/* Ring title and front-card title trade places across the transition.
-          Type is sized off the measured stage, not vh, so the wheel keeps its
-          proportions inside a card as well as at full bleed. */}
       <div
         ref={labelRef}
         className="pointer-events-none absolute inset-0 grid place-items-center tracking-tight"

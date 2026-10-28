@@ -1,10 +1,5 @@
-// Shopping list maths: per-portion ingredient quantities x ordered quantity,
-// summed across all accepted / cooking orders. Units are normalised so that
-// "500 g" + "1 kg" adds up to 1.5 kg.
-
 export type UnitInfo = { unit: string; factor: number };
 
-// Canonical unit + factor to the base unit. Keys are lower-case, trimmed.
 const UNITS: Record<string, UnitInfo> = {
   g: { unit: "g", factor: 1 },
   gr: { unit: "g", factor: 1 },
@@ -43,7 +38,6 @@ const UNITS: Record<string, UnitInfo> = {
   legătură: { unit: "legătură", factor: 1 },
   legaturi: { unit: "legătură", factor: 1 },
   legături: { unit: "legătură", factor: 1 },
-  // English spellings (the app can be used in English too).
   pc: { unit: "buc", factor: 1 },
   pcs: { unit: "buc", factor: 1 },
   tbsp: { unit: "lingură", factor: 1 },
@@ -55,8 +49,6 @@ const UNITS: Record<string, UnitInfo> = {
   bunch: { unit: "legătură", factor: 1 },
 };
 
-// Romanian plural of the canonical units (these are data words typed by the
-// cook, shown next to numbers; "g", "ml", "buc" don't change).
 const PLURAL: Record<string, string> = {
   lingură: "linguri",
   linguriță: "lingurițe",
@@ -80,9 +72,7 @@ export type ShoppingIngredient = { dish_id: string; name: string; quantity: numb
 export type ShoppingItem = {
   key: string;
   name: string;
-  /** Canonical unit ("g", "ml", "buc", "lingură", ...) or "" */
   unit: string;
-  /** Total in the base unit, or null when only "to taste" amounts were listed. */
   total: number | null;
   toTaste: boolean;
   dishes: { name: string; quantity: number }[];
@@ -95,10 +85,17 @@ export function buildShoppingList(orders: ShoppingOrder[], ingredients: Shopping
     byDish.get(ing.dish_id)!.push(ing);
   }
 
-  const items = new Map<string, ShoppingItem>();
+  const ordered = new Map<string, { name: string; quantity: number }>();
   for (const order of orders) {
     if (!order.dish_id) continue;
-    for (const ing of byDish.get(order.dish_id) ?? []) {
+    const dish = ordered.get(order.dish_id);
+    if (dish) dish.quantity += order.quantity;
+    else ordered.set(order.dish_id, { name: order.dish_name, quantity: order.quantity });
+  }
+
+  const items = new Map<string, ShoppingItem>();
+  for (const [dishId, dish] of ordered) {
+    for (const ing of byDish.get(dishId) ?? []) {
       const { unit, factor } = normalizeUnit(ing.unit);
       const key = itemKey(ing.name, ing.unit);
       let item = items.get(key);
@@ -107,16 +104,13 @@ export function buildShoppingList(orders: ShoppingOrder[], ingredients: Shopping
         items.set(key, item);
       }
       if (ing.quantity === null || ing.quantity === undefined) item.toTaste = true;
-      else item.total = (item.total ?? 0) + Number(ing.quantity) * factor * order.quantity;
-      const dish = item.dishes.find((d) => d.name === order.dish_name);
-      if (dish) dish.quantity += order.quantity;
-      else item.dishes.push({ name: order.dish_name, quantity: order.quantity });
+      else item.total = (item.total ?? 0) + Number(ing.quantity) * factor;
+      if (!item.dishes.some((d) => d.name === dish.name)) item.dishes.push({ ...dish });
     }
   }
   return [...items.values()].sort((a, b) => a.name.localeCompare(b.name, "ro"));
 }
 
-/** Display form: 1500 g -> { value: 1.5, unit: "kg" }, 3 lingură -> "linguri". */
 export function displayQuantity(total: number, unit: string): { value: number; unit: string } {
   const round = (n: number) => Math.round(n * 100) / 100;
   if (unit === "g" && total >= 1000) return { value: round(total / 1000), unit: "kg" };

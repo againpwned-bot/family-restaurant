@@ -5,10 +5,6 @@ import type { ReactNode } from "react";
 
 import { useAnimation } from "@/components/providers/animation-provider";
 
-/**
- * Desktop-full depth: the content drifts slower than the page while scrolling
- * (scroll-linked motion value -> transform; no React render per frame).
- */
 export function ScrollParallax({
   children,
   speed = 0.25,

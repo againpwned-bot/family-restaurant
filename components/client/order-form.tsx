@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useNow } from "@/hooks/use-now";
+import { isPastCutoff } from "@/lib/cutoff";
 import { kitchenHHMM, kitchenTimeToday } from "@/lib/dates";
 import { dbErrorKey } from "@/lib/errors";
 import { placeOrder } from "@/app/actions/orders";
@@ -19,7 +20,6 @@ import { cn } from "@/lib/utils";
 
 const MAX_PORTIONS = 10;
 
-/** Requested time as an instant: today at HH:MM, or tomorrow if that's past. */
 function requestedInstant(hhmm: string, now: number): { at: Date; tomorrow: boolean } | null {
   const today = kitchenTimeToday(hhmm, new Date(now));
   if (!today) return null;
@@ -28,8 +28,8 @@ function requestedInstant(hhmm: string, now: number): { at: Date; tomorrow: bool
     : { at: new Date(today.getTime() + 24 * 3600_000), tomorrow: true };
 }
 
-function suggestedTime(cookMinutes: number) {
-  const at = new Date(Date.now() + (cookMinutes + 5) * 60_000);
+function suggestedTime(cookMinutes: number | null) {
+  const at = new Date(Date.now() + ((cookMinutes ?? 0) + 5) * 60_000);
   at.setMinutes(Math.ceil(at.getMinutes() / 5) * 5, 0, 0);
   return kitchenHHMM(at);
 }
@@ -37,11 +37,13 @@ function suggestedTime(cookMinutes: number) {
 export function OrderForm({
   dishId,
   cookMinutes,
-  available,
+  available: onMenu,
+  cutoff,
 }: {
   dishId: string;
-  cookMinutes: number;
+  cookMinutes: number | null;
   available: boolean;
+  cutoff: string | null;
 }) {
   const t = useTranslations();
   const router = useRouter();
@@ -52,6 +54,8 @@ export function OrderForm({
   const [comment, setComment] = useState("");
   const [sending, setSending] = useState(false);
   const now = useNow();
+  const closed = onMenu && now !== null && isPastCutoff(cutoff, now);
+  const available = onMenu && !closed;
   const preview = mode === "time" && now !== null ? requestedInstant(time, now) : null;
 
   async function submit(event: React.FormEvent) {
@@ -82,6 +86,17 @@ export function OrderForm({
       <h2 id={`${id}-title`} className="font-heading text-2xl font-bold">
         {t("orderForm.title")}
       </h2>
+      {onMenu && cutoff ? (
+        <p
+          role="status"
+          className={cn(
+            "-mt-2 rounded-xl px-3 py-2 text-sm font-semibold",
+            closed ? "bg-destructive/10 text-destructive" : "bg-gold-soft text-gold-ink",
+          )}
+        >
+          {closed ? t("orderForm.closed", { time: cutoff }) : t("orderForm.closesAt", { time: cutoff })}
+        </p>
+      ) : null}
 
       <fieldset className="grid gap-2" disabled={!available || sending}>
         <legend className="mb-2 text-sm font-semibold">{t("orderForm.quantity")}</legend>

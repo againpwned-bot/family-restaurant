@@ -4,9 +4,6 @@ import { getSession } from "@/lib/auth/dal";
 import { asUser } from "@/lib/server/db";
 import { dbErrorKey } from "@/lib/errors";
 
-// Used by the service worker when the browser rotates a push subscription
-// (pushsubscriptionchange). The session cookie identifies the user; the
-// database function moves/creates the subscription for them.
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as {
     subscription?: { endpoint?: string; keys?: { p256dh?: string; auth?: string } };

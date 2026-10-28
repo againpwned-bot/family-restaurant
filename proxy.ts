@@ -9,13 +9,8 @@ import {
   shouldRenew,
 } from "@/lib/server/session-cookie";
 
-// Route protection (formerly "middleware" - renamed to "proxy" in Next.js 16).
-// This is the first gate and only checks the signed session cookie; layouts
-// re-check the session and role in the database, and row level security is
-// the last word on data.
 export function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
-  // API routes answer 401 themselves; /logout clears a stale cookie.
   if (pathname.startsWith("/api/") || pathname === "/logout") return NextResponse.next();
 
   const claims = decodeSession(request.cookies.get(SESSION_COOKIE)?.value);
@@ -50,7 +45,6 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Everything except static assets, uploaded photos, the service worker, the manifest and icons.
     "/((?!_next/static|_next/image|uploads/|favicon\\.ico|sw\\.js|manifest\\.webmanifest|icons/|sounds/|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|mp3|ogg|txt|xml)$).*)",
   ],
 };

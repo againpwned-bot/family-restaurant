@@ -9,12 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { getCurrentProfile } from "@/lib/auth/dal";
 import { kitchenDate } from "@/lib/dates";
 import { asUser } from "@/lib/server/db";
-import { menuDish } from "@/lib/server/queries";
+import { appSettings, menuDish } from "@/lib/server/queries";
+import { effectiveCutoff } from "@/lib/cutoff";
 import { formatQuantity, normalizeUnit } from "@/lib/shopping";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** A dish as the signed-in user may see it (RLS), or null. */
 export async function fetchDish(id: string): Promise<MenuDish | null> {
   if (!UUID.test(id)) return null;
   const profile = await getCurrentProfile();
@@ -22,7 +22,6 @@ export async function fetchDish(id: string): Promise<MenuDish | null> {
   return asUser(profile.id, (tx) => menuDish(tx, id));
 }
 
-/** Dish page body, shared by the full page and the overlay over the menu. */
 export async function DishDetail({
   dish,
   top,
@@ -35,6 +34,9 @@ export async function DishDetail({
   const t = await getTranslations();
   const locale = await getLocale();
   const available = dish.available_on === kitchenDate();
+  const profile = await getCurrentProfile();
+  const settings = profile ? await asUser(profile.id, appSettings) : null;
+  const cutoff = settings ? effectiveCutoff(settings, dish.meal) : null;
 
   return (
     <article className="grid gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-10">
@@ -48,30 +50,46 @@ export async function DishDetail({
       <div className="grid content-start gap-6">
         <header className="grid gap-3">
           <div className="flex flex-wrap items-center gap-2">
-            {available ? <Badge className="bg-gold-soft text-gold-ink">{t("dish.onMenu")}</Badge> : null}
-            <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
-              <Clock className="size-4" aria-hidden="true" />
-              {t("dish.cookTime", { minutes: dish.cook_minutes })}
-            </span>
+            {available ? (
+              <Badge className="h-6 -rotate-2 border-2 border-line bg-gold px-2.5 font-bold text-gold-foreground">
+                {t("dish.onMenu")}
+              </Badge>
+            ) : null}
+            {dish.meal ? (
+              <Badge variant="outline" className="h-6 border-2 border-line px-2.5 font-bold">
+                {t(`meals.${dish.meal}`)}
+              </Badge>
+            ) : null}
+            {dish.tags.map((tag) => (
+              <Badge key={tag} variant="secondary" className="h-6 px-2.5 font-bold">
+                {t(`dishTags.${tag}`)}
+              </Badge>
+            ))}
+            {dish.cook_minutes !== null ? (
+              <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground">
+                <Clock className="size-4" aria-hidden="true" />
+                {t("dish.cookTime", { minutes: dish.cook_minutes })}
+              </span>
+            ) : null}
           </div>
-          <h1 className="font-heading text-4xl leading-tight font-bold tracking-tight sm:text-5xl">{dish.name}</h1>
+          <h1 className="font-heading text-5xl leading-[0.95] font-black tracking-tight [font-variation-settings:'SOFT'_100,'WONK'_1,'opsz'_144] sm:text-6xl">
+            {dish.name}
+          </h1>
           {dish.description ? <p className="text-lg/relaxed text-muted-foreground">{dish.description}</p> : null}
         </header>
 
-        <section aria-labelledby={`ingredients-${dish.id}`} className="rounded-3xl border border-border bg-card p-5">
-          <h2 id={`ingredients-${dish.id}`} className="font-heading text-xl font-bold">
+        <section aria-labelledby={`ingredients-${dish.id}`} className="rounded-[1.75rem] bg-paper p-5 sticker">
+          <h2 id={`ingredients-${dish.id}`} className="font-heading text-2xl font-black">
             {t("dish.ingredients")}{" "}
             <span className="font-sans text-sm font-normal text-muted-foreground">· {t("dish.ingredientsHint")}</span>
           </h2>
           {dish.dish_ingredients.length ? (
             <ul className="mt-3 grid gap-x-6 gap-y-2 sm:grid-cols-2">
               {dish.dish_ingredients.map((ing) => (
-                <li
-                  key={`${ing.position}-${ing.name}`}
-                  className="flex items-baseline justify-between gap-3 border-b border-dashed border-border pb-2"
-                >
-                  <span>{ing.name}</span>
-                  <span className="shrink-0 font-semibold text-brand-ink tabular-nums">
+                <li key={`${ing.position}-${ing.name}`} className="flex items-baseline gap-2">
+                  <span className="font-semibold">{ing.name}</span>
+                  <span className="min-w-3 flex-1 border-b-2 border-dotted border-foreground/30" aria-hidden="true" />
+                  <span className="shrink-0 font-mono text-sm font-medium text-brand-ink tabular-nums">
                     {ing.quantity !== null
                       ? formatQuantity(
                           ing.quantity * normalizeUnit(ing.unit).factor,
@@ -88,13 +106,13 @@ export async function DishDetail({
           )}
         </section>
 
-        <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
+        <section className="rounded-[1.75rem] bg-card p-5 sticker">
           {!available ? (
             <p role="status" className="mb-4 rounded-xl bg-muted px-3 py-2 text-sm font-medium">
               {t("dish.notToday")}
             </p>
           ) : null}
-          <OrderForm dishId={dish.id} cookMinutes={dish.cook_minutes} available={available} />
+          <OrderForm dishId={dish.id} cookMinutes={dish.cook_minutes} available={available} cutoff={cutoff} />
         </section>
       </div>
     </article>

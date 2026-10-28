@@ -10,14 +10,12 @@ import { DishPhoto } from "@/components/dish/dish-photo";
 import { useAnimation } from "@/components/providers/animation-provider";
 import { cn } from "@/lib/utils";
 
-// WebGL never ships in the main bundle: loaded only for the desktop-full tier.
 const DishPlate3D = dynamic(() => import("@/components/three/dish-plate").then((mod) => mod.DishPlate3D), {
   ssr: false,
 });
 
 type HeroDish = { id: string; name: string; photo_path: string | null; photo_blur: string | null };
 
-/** Big dish photo; shared element with the menu card (layoutId). Desktop-full: optional 3D plate. */
 export function DishHero({ dish, rounded = true }: { dish: HeroDish; rounded?: boolean }) {
   const t = useTranslations("dish");
   const { tier, settled } = useAnimation();
@@ -31,7 +29,7 @@ export function DishHero({ dish, rounded = true }: { dish: HeroDish; rounded?: b
         layoutId={`dish-photo-${dish.id}`}
         className={cn(
           "relative aspect-[4/3] overflow-hidden bg-muted",
-          rounded && "sm:rounded-3xl sm:shadow-xl sm:shadow-primary/10",
+          rounded && "sm:rounded-[2rem] sm:border-2 sm:border-line sm:shadow-[6px_6px_0_var(--shadow-hard)]",
         )}
       >
         <DishPhoto dish={dish} preload sizes="(min-width: 1024px) 55vw, 100vw" />
@@ -41,7 +39,7 @@ export function DishHero({ dish, rounded = true }: { dish: HeroDish; rounded?: b
         <div
           role="radiogroup"
           aria-label={t("view3d")}
-          className="absolute top-3 right-3 z-10 flex rounded-full bg-card/95 p-1 shadow-sm"
+          className="absolute top-3 right-3 z-10 flex rounded-full border-2 border-line bg-card/95 p-1"
         >
           {(["3d", "photo"] as const).map((v) => (
             <button

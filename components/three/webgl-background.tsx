@@ -5,8 +5,6 @@ import { useEffect, useState } from "react";
 
 import { useAnimation } from "@/components/providers/animation-provider";
 
-// three.js + react-three-fiber are only ever fetched by desktop-full devices,
-// and only once the page is idle (they never compete with the first paint / LCP).
 const Steam = dynamic(() => import("@/components/three/steam"), { ssr: false });
 
 export function WebglBackground({
@@ -23,7 +21,6 @@ export function WebglBackground({
   const { tier, settled } = useAnimation();
   const [idle, setIdle] = useState(false);
 
-  // After the first-seconds frame-rate check, so WebGL never skews it.
   useEffect(() => {
     if (tier !== "full" || !settled) return;
     const schedule = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1200));

@@ -29,19 +29,22 @@ import { Textarea } from "@/components/ui/textarea";
 import { safe } from "@/lib/action-result";
 import { dbErrorKey } from "@/lib/errors";
 import { PhotoError, formatBytes, photoExtension, preparePhoto, type PreparedPhoto } from "@/lib/images";
+import { DISH_TAGS, MEALS, type DishTag, type Meal } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export type DishFormValue = {
   id: string | null;
   name: string;
   description: string;
-  cook_minutes: number;
+  cook_minutes: number | null;
   availableToday: boolean;
   photo_path: string | null;
   photo_width: number | null;
   photo_height: number | null;
   photo_blur: string | null;
   ingredients: { name: string; quantity: number | null; unit: string }[];
+  tags: DishTag[];
+  meal: Meal | null;
 };
 
 type Row = { key: string; name: string; quantity: string; unit: string };
@@ -63,8 +66,10 @@ export function DishForm({ initial }: { initial: DishFormValue }) {
 
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description);
-  const [minutes, setMinutes] = useState(String(initial.cook_minutes));
+  const [minutes, setMinutes] = useState(initial.cook_minutes === null ? "" : String(initial.cook_minutes));
   const [availableToday, setAvailableToday] = useState(initial.availableToday);
+  const [tags, setTags] = useState<DishTag[]>(initial.tags);
+  const [meal, setMeal] = useState<Meal | null>(initial.meal);
   const [rows, setRows] = useState<Row[]>(() =>
     initial.ingredients.map((i) => ({
       key: newKey(),
@@ -93,7 +98,6 @@ export function DishForm({ initial }: { initial: DishFormValue }) {
   const fileInput = useRef<HTMLInputElement>(null);
   const focusRow = useRef<string | null>(null);
 
-  // Free the local preview URL when it's replaced or the form unmounts.
   useEffect(() => {
     const preview = photo?.kind === "new" ? photo.preview : null;
     return () => {
@@ -139,7 +143,7 @@ export function DishForm({ initial }: { initial: DishFormValue }) {
     else if (n.length > 80) e.name = t("errors.nameTooLong");
     if (description.length > 1000) e.description = t("errors.descriptionTooLong");
     const mins = Number(minutes);
-    if (!Number.isInteger(mins) || mins < 1 || mins > 600) e.minutes = t("errors.minutesInvalid");
+    if (minutes.trim() && (!Number.isInteger(mins) || mins < 1 || mins > 600)) e.minutes = t("errors.minutesInvalid");
     for (const row of rows) {
       const empty = !row.name.trim() && !row.quantity.trim() && !row.unit.trim();
       if (empty) continue;
@@ -168,7 +172,7 @@ export function DishForm({ initial }: { initial: DishFormValue }) {
       id: initial.id,
       name: name.trim(),
       description: description.trim(),
-      cookMinutes: Number(minutes),
+      cookMinutes: minutes.trim() ? Number(minutes) : null,
       availableToday,
       photo:
         photo?.kind === "existing"
@@ -179,6 +183,8 @@ export function DishForm({ initial }: { initial: DishFormValue }) {
           ? { width: photo.prepared.width, height: photo.prepared.height, blur: photo.prepared.blur }
           : null,
       ingredients,
+      tags,
+      meal,
     };
     const form = new FormData();
     form.set("dish", JSON.stringify(input));
@@ -252,11 +258,7 @@ export function DishForm({ initial }: { initial: DishFormValue }) {
       className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start"
     >
       <div className="grid gap-6">
-        {/* Photo */}
-        <section
-          className="grid gap-3 rounded-2xl border border-border bg-card p-4 sm:p-5"
-          aria-labelledby={`${formId}-photo`}
-        >
+        <section className="grid gap-3 rounded-[1.5rem] bg-card sticker p-4 sm:p-5" aria-labelledby={`${formId}-photo`}>
           <h2 id={`${formId}-photo`} className="font-heading text-lg font-bold">
             {t("photo")}
           </h2>
@@ -350,8 +352,7 @@ export function DishForm({ initial }: { initial: DishFormValue }) {
           )}
         </section>
 
-        {/* Basics */}
-        <section className="grid gap-4 rounded-2xl border border-border bg-card p-4 sm:p-5">
+        <section className="grid gap-4 rounded-[1.5rem] bg-card sticker p-4 sm:p-5">
           <div className="grid gap-2">
             <Label htmlFor={`${formId}-name`}>{t("name")}</Label>
             <Input
@@ -413,12 +414,53 @@ export function DishForm({ initial }: { initial: DishFormValue }) {
             </div>
             <Switch id={`${formId}-today`} checked={availableToday} onCheckedChange={setAvailableToday} />
           </div>
+          <fieldset className="grid gap-2">
+            <legend className="mb-2 text-sm font-medium">{t("meal")}</legend>
+            <div className="flex flex-wrap gap-2">
+              {[null, ...MEALS].map((value) => (
+                <button
+                  key={value ?? "none"}
+                  type="button"
+                  aria-pressed={meal === value}
+                  onClick={() => setMeal(value)}
+                  className={cn(
+                    "h-9 rounded-full border-2 border-line px-3.5 text-sm font-bold outline-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-10",
+                    meal === value ? "bg-foreground text-background" : "bg-card hover:bg-muted",
+                  )}
+                >
+                  {value ? tAll(`meals.${value}`) : t("mealNone")}
+                </button>
+              ))}
+            </div>
+            <p className="text-sm text-muted-foreground">{t("mealHint")}</p>
+          </fieldset>
+          <fieldset className="grid gap-2">
+            <legend className="mb-2 text-sm font-medium">{t("tags")}</legend>
+            <div className="flex flex-wrap gap-2">
+              {DISH_TAGS.map((tag) => {
+                const on = tags.includes(tag);
+                return (
+                  <button
+                    key={tag}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => setTags((list) => (on ? list.filter((x) => x !== tag) : [...list, tag]))}
+                    className={cn(
+                      "h-9 rounded-full border-2 border-line px-3.5 text-sm font-bold outline-none focus-visible:ring-3 focus-visible:ring-ring/50 pointer-coarse:h-10",
+                      on ? "bg-gold text-gold-foreground" : "bg-card hover:bg-muted",
+                    )}
+                  >
+                    {tAll(`dishTags.${tag}`)}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
         </section>
       </div>
 
-      {/* Ingredients */}
       <section
-        className="grid gap-4 rounded-2xl border border-border bg-card p-4 sm:p-5"
+        className="grid gap-4 rounded-[1.5rem] bg-card sticker p-4 sm:p-5"
         aria-labelledby={`${formId}-ingredients`}
       >
         <div>
@@ -535,7 +577,6 @@ export function DishForm({ initial }: { initial: DishFormValue }) {
         </Button>
       </section>
 
-      {/* Actions */}
       <div className="sticky bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-20 -mx-4 flex flex-wrap items-center gap-2 border-t border-border bg-background px-4 py-3 sm:mx-0 sm:rounded-2xl sm:border lg:bottom-4 lg:col-span-2">
         <Button type="submit" size="lg" disabled={saving || photoBusy || deleting}>
           {saving ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : null}

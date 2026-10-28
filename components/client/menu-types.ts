@@ -11,4 +11,6 @@ export type MenuDish = Pick<
   | "photo_height"
   | "cook_minutes"
   | "available_on"
+  | "tags"
+  | "meal"
 > & { dish_ingredients: Pick<DishIngredient, "name" | "quantity" | "unit" | "position">[] };

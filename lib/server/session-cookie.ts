@@ -1,8 +1,3 @@
-// The session cookie: <payload>.<signature>, HMAC-SHA256 with the key from
-// data/secrets.json. The proxy only checks the signature (fast, no database);
-// lib/auth/dal.ts also checks that the session still exists in the database,
-// so signing out or a password reset ends it immediately.
-
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { isAppRole } from "../auth/roles";
@@ -10,7 +5,6 @@ import type { AppRole } from "../types";
 import { secrets } from "./secrets";
 
 export const SESSION_COOKIE = "meniu_session";
-/** A session lasts 30 days and is renewed while it is being used. */
 export const SESSION_DAYS = 30;
 const RENEW_AFTER_DAYS = 1;
 
@@ -47,15 +41,10 @@ export function decodeSession(value: string | undefined | null, now = Date.now()
   }
 }
 
-/** Sliding expiry: re-issue the cookie at most once a day while the user is active. */
 export function shouldRenew(claims: SessionClaims, now = Date.now()): boolean {
   return now / 1000 - (claims.iat ?? 0) > RENEW_AFTER_DAYS * 24 * 60 * 60;
 }
 
-/**
- * Cookie options. `Secure` only over HTTPS: on http://localhost and on the
- * home network (http://192.168.x.x:3000) browsers would drop a Secure cookie.
- */
 export function sessionCookieOptions(secure: boolean) {
   return {
     httpOnly: true,

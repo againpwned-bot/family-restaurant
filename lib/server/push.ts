@@ -1,33 +1,21 @@
-// Web Push delivery. Every new notification row is announced on the "push"
-// channel (db/migrations/0006_push.sql); this renders the text in the
-// recipient's language and sends it to each of their browsers with VAPID.
-
 import webpush from "web-push";
 
 import en from "../../messages/en.json";
 import ro from "../../messages/ro.json";
-import type { AppNotification, Locale } from "../types";
+import { notificationHref, notificationTag } from "../notifications";
+import type { AppNotification, AppRole, Locale } from "../types";
 import { row, rows, type Db } from "./database";
 import { secrets } from "./secrets";
 
-type Strings = Record<string, { title: string; body: string; bodyNoReason?: string }>;
+type Strings = Record<string, { title: string; body: string; bodyNoReason?: string; titleGroup?: string }>;
 
-/** Only the per-type entries of the "notifications" namespace. */
 function strings(namespace: Record<string, unknown>): Strings {
   return Object.fromEntries(Object.entries(namespace).filter(([, v]) => typeof v === "object")) as Strings;
 }
 const MESSAGES: Record<Locale, Strings> = { ro: strings(ro.notifications), en: strings(en.notifications) };
 
-const STAFF_TYPES = new Set(["order_new", "order_cancelled"]);
-const URGENT_TYPES = new Set(["order_new", "order_ready", "order_cancelled"]);
+const URGENT_TYPES = new Set(["order_new", "order_ready", "order_cancelled", "broadcast"]);
 
-function hrefFor(n: Pick<AppNotification, "type" | "order_id">) {
-  if (STAFF_TYPES.has(n.type)) return "/admin";
-  if (n.type === "test") return "/";
-  return n.order_id ? `/orders/${n.order_id}` : "/orders";
-}
-
-/** Same texts as the in-app banner (messages/*.json -> notifications). */
 export function renderPush(locale: Locale, n: Pick<AppNotification, "type" | "payload">) {
   const p = (n.payload ?? {}) as Record<string, unknown>;
   const entry = (MESSAGES[locale] ?? MESSAGES.ro)[n.type];
@@ -46,11 +34,17 @@ export function renderPush(locale: Locale, n: Pick<AppNotification, "type" | "pa
     quantity: String(p.quantity ?? 1),
     minutes: String(p.minutes ?? ""),
     reason: String(p.reason ?? ""),
+    title: String(p.title ?? ""),
+    body: String(p.body ?? ""),
+    from: String(p.from ?? ""),
+    preview: String(p.preview ?? ""),
+    by: String(p.by ?? ""),
     time,
   };
   const fill = (template: string) => template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? "");
   const body = n.type === "order_rejected" && !p.reason && entry.bodyNoReason ? entry.bodyNoReason : entry.body;
-  return { title: fill(entry.title), body: fill(body) };
+  const title = n.type === "chat_message" && p.group && entry.titleGroup ? entry.titleGroup : entry.title;
+  return { title: fill(title), body: fill(body) };
 }
 
 export function vapidPublicKey(): string {
@@ -58,9 +52,10 @@ export function vapidPublicKey(): string {
 }
 
 async function deliver(db: Db, notificationId: string) {
-  const n = await row<AppNotification & { locale: Locale }>(
+  const n = await row<AppNotification & { locale: Locale; role: AppRole }>(
     db,
-    `select n.*, p.locale from public.notifications n join public.profiles p on p.id = n.recipient_id where n.id = $1`,
+    `select n.*, p.locale, p.role from public.notifications n join public.profiles p on p.id = n.recipient_id
+      where n.id = $1 and p.disabled_at is null`,
     [notificationId],
   );
   if (!n) return;
@@ -77,8 +72,8 @@ async function deliver(db: Db, notificationId: string) {
   const payload = JSON.stringify({
     ...text,
     type: n.type,
-    url: hrefFor(n),
-    tag: n.order_id ? `order-${n.order_id}` : n.type,
+    url: notificationHref(n, n.role),
+    tag: notificationTag(n),
     lang: n.locale,
     timestamp: new Date(n.created_at).getTime(),
   });
@@ -100,7 +95,6 @@ async function deliver(db: Db, notificationId: string) {
     } catch (error) {
       const status = (error as { statusCode?: number }).statusCode;
       if (status === 404 || status === 410) {
-        // The browser unsubscribed or the subscription expired.
         await db.query("delete from public.push_subscriptions where id = $1", [sub.id]);
       } else {
         await db.query("update public.push_subscriptions set failure_count = failure_count + 1 where id = $1", [sub.id]);
@@ -111,7 +105,6 @@ async function deliver(db: Db, notificationId: string) {
   if (sent) await db.query("update public.notifications set pushed_at = now() where id = $1", [n.id]);
 }
 
-/** Started once when the database opens. Pushes go out one at a time, in order. */
 export async function startPushWorker(db: Db) {
   const keys = secrets();
   webpush.setVapidDetails(

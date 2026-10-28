@@ -1,12 +1,3 @@
-// Shared helpers for the end-to-end checks. They run against the app on this
-// computer:
-//   terminal 1: npm run dev            (or npm run build && npm start)
-//   terminal 2: npm run test:e2e
-// Accounts come from scripts/users.local.json and the dishes from
-// `npm run seed:dishes`. Both sides of every flow (the family member and the
-// kitchen) are real browser sessions clicking through the real UI.
-// Passwords are never printed.
-
 import fs from "node:fs";
 import path from "node:path";
 
@@ -41,7 +32,6 @@ export function done(name: string): never {
   process.exit(failures ? 1 : 0);
 }
 
-/** `full` uses the complete Chromium build (new headless), needed for notifications. */
 export async function browser(options: { full?: boolean } = {}): Promise<Browser> {
   return chromium.launch(options.full ? { channel: "chromium" } : {});
 }
@@ -59,10 +49,6 @@ export async function context(b: Browser, kind: "phone" | "desktop", extra: Para
   });
 }
 
-/**
- * Waits until React owns the element (hydrated, or rendered in the browser).
- * Typing into server HTML before that can be lost when React re-renders it.
- */
 export async function hydrated(page: Page, selector: string) {
   await page.waitForFunction(
     (sel) => {
@@ -86,7 +72,6 @@ export async function login(ctx: BrowserContext, who: Account): Promise<Page> {
   return page;
 }
 
-/** Signs in with a fresh browser profile; resolves to whether it worked. */
 export async function canSignIn(b: Browser, who: Account): Promise<boolean> {
   const ctx = await context(b, "desktop");
   try {
@@ -112,7 +97,6 @@ export async function noHorizontalOverflow(page: Page) {
   return page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1);
 }
 
-/** Runs `click` and waits until the server action it triggered has answered. */
 export async function serverAction(page: Page, click: () => Promise<unknown>) {
   const answered = page.waitForResponse((r) => r.request().method() === "POST" && !!r.request().headers()["next-action"], {
     timeout: 15_000,
@@ -121,7 +105,6 @@ export async function serverAction(page: Page, click: () => Promise<unknown>) {
   await answered;
 }
 
-/** Every in-app notification this browser profile receives (survives page changes). */
 export async function recordNotifications(ctx: BrowserContext): Promise<AppNotification[]> {
   const list: AppNotification[] = [];
   await ctx.exposeFunction("__e2eNotification", (n: AppNotification) => void list.push(n));
@@ -141,10 +124,6 @@ export async function until<T>(fn: () => T | undefined | null | false, ms = 10_0
   return null;
 }
 
-/**
- * A throwaway client account made on the owner's Users page; `remove()`
- * deletes it again (with everything it owns: orders, push subscriptions).
- */
 export async function temporaryAccount(b: Browser): Promise<{ account: Account; remove: () => Promise<void> }> {
   const ctx = await context(b, "desktop");
   const page = await login(ctx, account("owner"));
@@ -171,9 +150,6 @@ export async function temporaryAccount(b: Browser): Promise<{ account: Account; 
   };
 }
 
-// --- the kitchen (owner / admin), through the admin pages ----------------------
-
-/** Dish name -> id, from Admin -> Dishes. */
 export async function dishIds(staff: Page): Promise<Map<string, string>> {
   await staff.goto(`${BASE}/admin/dishes`);
   const links = await staff.locator('a[href^="/admin/dishes/"]').evaluateAll((list) =>
@@ -187,7 +163,6 @@ export async function dishIds(staff: Page): Promise<Map<string, string>> {
   return map;
 }
 
-/** The dishes the e2e checks order (from `npm run seed:dishes`). */
 export async function sampleDishes(staff: Page) {
   const ids = await dishIds(staff);
   const find = (prefix: string) => {
@@ -217,7 +192,6 @@ export async function clearMenu(staff: Page) {
   );
 }
 
-/** Matches "#12" but not "#120". */
 export const orderNo = (number: number) => new RegExp(`#${number}(?!\\d)`);
 
 const boardCard = (staff: Page, number: number) => staff.locator("article:visible", { hasText: orderNo(number) });
@@ -230,7 +204,6 @@ type BoardAction =
   | { do: "ready" }
   | { do: "handOver" };
 
-/** One click on the live orders board (desktop layout), waiting until the server has done it. */
 export async function onBoard(staff: Page, number: number, action: BoardAction) {
   if (new URL(staff.url()).pathname !== "/admin") await staff.goto(`${BASE}/admin`);
   const card = boardCard(staff, number);
@@ -264,7 +237,6 @@ export async function onBoard(staff: Page, number: number, action: BoardAction) 
   }
 }
 
-/** Refuses every order still open, so each run starts from an empty board. */
 export async function clearBoard(staff: Page) {
   await staff.goto(`${BASE}/admin`);
   await staff.getByText("În direct").waitFor({ timeout: 15_000 });
@@ -287,11 +259,8 @@ export async function clearBoard(staff: Page) {
   }
 }
 
-// --- a family member, through the client pages ---------------------------------
-
 export type PlacedOrder = { id: string; number: number };
 
-/** Orders from the dish page; lands on the order's status page. */
 export async function placeOrder(
   client: Page,
   dishId: string,

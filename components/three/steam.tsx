@@ -1,15 +1,12 @@
 "use client";
 
-// Rising steam: ~140 soft point sprites in a single draw call (no triangles),
-// animated in the vertex shader; the whole cloud leans toward the cursor.
-
 import { useFrame } from "@react-three/fiber";
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 import { CanvasShell } from "@/components/three/canvas-shell";
 
-const vertexShader = /* glsl */ `
+const vertexShader = `
   uniform float uTime;
   uniform float uPixelRatio;
   attribute float aSeed;
@@ -23,12 +20,11 @@ const vertexShader = /* glsl */ `
     vAlpha = smoothstep(0.0, 0.25, life) * (1.0 - smoothstep(0.55, 1.0, life));
     vec4 mv = modelViewMatrix * vec4(p, 1.0);
     gl_Position = projectionMatrix * mv;
-    // Large, very soft sprites read as steam rather than specks.
     gl_PointSize = (260.0 + aSeed * 420.0) * uPixelRatio / -mv.z;
   }
 `;
 
-const fragmentShader = /* glsl */ `
+const fragmentShader = `
   uniform vec3 uColor;
   uniform float uOpacity;
   varying float vAlpha;
@@ -95,7 +91,6 @@ function SteamPoints({
     material.uniforms.uTime.value += Math.min(delta, 0.05);
     const g = group.current;
     if (!g) return;
-    // Light cursor parallax.
     g.rotation.y += (state.pointer.x * 0.18 - g.rotation.y) * 0.04;
     g.rotation.x += (-state.pointer.y * 0.08 - g.rotation.x) * 0.04;
   });

@@ -1,6 +1,6 @@
 "use client";
 
-import { BellOff, BellRing, CircleAlert, LoaderCircle, Send } from "lucide-react";
+import { BellOff, BellRing, ChevronDown, CircleAlert, LoaderCircle, Send } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
@@ -19,7 +19,6 @@ function detectBrowser(): Browser {
   return "chrome";
 }
 
-/** Shared state hook: Settings toggle + the prompt card both use it. */
 export function usePushState({ deferred = false }: { deferred?: boolean } = {}) {
   const [state, setState] = useState<PushState | null>(null);
   useEffect(() => {
@@ -31,7 +30,6 @@ export function usePushState({ deferred = false }: { deferred?: boolean } = {}) 
         alive = false;
       };
     }
-    // Secondary UI (the prompt card): wait until the page is idle.
     const schedule = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 1500));
     const cancel = window.cancelIdleCallback ?? window.clearTimeout;
     const id = schedule(check, { timeout: 4000 });
@@ -49,22 +47,33 @@ export function DeniedHelp({ onDismiss }: { onDismiss?: () => void }) {
   const order: Browser[] = [browser, ...(["chrome", "firefox", "android"] as Browser[]).filter((b) => b !== browser)];
   const text = { chrome: t("deniedChrome"), firefox: t("deniedFirefox"), android: t("deniedAndroid") };
   return (
-    <div role="alert" className="grid gap-2 rounded-xl bg-gold-soft p-3 text-sm text-gold-ink">
-      <p className="flex items-center gap-2 font-bold">
-        <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
-        {t("deniedTitle")}
-      </p>
-      <p>{t("deniedText")}</p>
-      <ul className="grid list-disc gap-1 pl-5">
-        {order.map((b) => (
-          <li key={b} className={b === browser ? "font-semibold" : undefined}>
-            {text[b]}
-          </li>
-        ))}
-      </ul>
-      <p>{t("deniedFallback")}</p>
+    <div
+      role="alert"
+      className="flex items-start gap-2 rounded-2xl border-2 border-line bg-gold-soft p-2 pl-3 text-sm text-gold-ink"
+    >
+      <details className="group/denied min-w-0 flex-1" open={!onDismiss}>
+        <summary className="flex min-h-8 cursor-pointer list-none items-center gap-2 font-bold [&::-webkit-details-marker]:hidden">
+          <CircleAlert className="size-4 shrink-0" aria-hidden="true" />
+          <span className="min-w-0 flex-1">{t("deniedTitle")}</span>
+          <ChevronDown
+            className="size-4 shrink-0 transition-transform duration-300 group-open/denied:rotate-180"
+            aria-hidden="true"
+          />
+        </summary>
+        <div className="grid gap-2 pt-2 pb-1">
+          <p>{t("deniedText")}</p>
+          <ul className="grid list-disc gap-1 pl-5">
+            {order.map((b) => (
+              <li key={b} className={b === browser ? "font-semibold" : undefined}>
+                {text[b]}
+              </li>
+            ))}
+          </ul>
+          <p>{t("deniedFallback")}</p>
+        </div>
+      </details>
       {onDismiss ? (
-        <Button variant="ghost" size="sm" className="justify-self-start" onClick={onDismiss}>
+        <Button variant="ghost" size="sm" className="shrink-0" onClick={onDismiss}>
           {t("promptDismiss")}
         </Button>
       ) : null}

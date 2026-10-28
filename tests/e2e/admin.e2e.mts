@@ -1,6 +1,3 @@
-// Admin end-to-end checks: live orders board, dishes, today's menu, shopping
-// list, users. Run with `npm run dev` in another terminal (see helpers.mts).
-
 import fs from "node:fs";
 
 import sharp from "sharp";
@@ -35,7 +32,6 @@ const adminAcc = account("admin");
 const ownerAcc = account("owner");
 const clientAcc = account("client");
 
-// --- setup: clean board, Sarmale on today's menu; the client's browser stays open
 const kitchenCtx = await context(b, "desktop");
 const kitchen = await login(kitchenCtx, adminAcc);
 await clearBoard(kitchen);
@@ -43,7 +39,6 @@ const { sarmale, ciorba } = await sampleDishes(kitchen);
 await setOnMenu(kitchen, sarmale.name, true);
 
 const clientCtx = await context(b, "desktop");
-// Everything the client's phone would show as a banner.
 const clientNotifications = await recordNotifications(clientCtx);
 const client = await login(clientCtx, clientAcc);
 
@@ -97,7 +92,6 @@ console.log("\n== orders board (desktop)");
     .waitFor({ timeout: 10_000 });
   check("handed over goes to 'Finalizate azi'", true);
 
-  // reject with a quick reason
   const second = await placeOrder(client, sarmale.id);
   const secondCard = page.locator("article:visible", { hasText: orderNo(second.number) });
   await secondCard.waitFor({ timeout: 10_000 });
@@ -107,7 +101,6 @@ console.log("\n== orders board (desktop)");
   await page.getByText(`Comanda #${second.number} a fost refuzată.`).waitFor();
   check("reject with reason", true);
 
-  // client cancels -> staff banner
   const third = await placeOrder(client, sarmale.id);
   await page.locator("article:visible", { hasText: orderNo(third.number) }).waitFor({ timeout: 10_000 });
   await cancelOrder(client, third.id);
@@ -174,7 +167,6 @@ console.log("\n== dishes");
   check("dish saved, back on the list", true);
   await page.screenshot({ path: `${SHOTS}/admin-dishes-desktop.png` });
 
-  // Read it back from its edit page.
   await page.getByRole("link", { name: `Editează ${name}` }).click();
   await page.waitForURL(/\/admin\/dishes\/[0-9a-f-]{36}$/);
   const dishId = page.url().split("/").pop()!;
@@ -207,7 +199,7 @@ console.log("\n== dishes");
     "optimised version is served (next/image)",
     (await fetch(optimised, { headers: { Accept: "image/avif,image/webp" } })).ok,
   );
-  await page.reload(); // the page data is only in the HTML after a full load
+  await page.reload();
   check("blur placeholder stored", /photo_blur\\*":\\*"data:image\//.test(await page.content()));
 
   await page.getByLabel("Timp estimat de gătit (minute)").fill("55");
@@ -287,7 +279,6 @@ console.log("\n== shopping list");
   await page.getByRole("button", { name: "Resetează bifele" }).click();
   await page.getByText("Bifele au fost resetate.").waitFor();
   check("reset ticks", true);
-  // Accepted orders only move forward in the kitchen; the client may still cancel them.
   for (const o of [o1, o2]) await cancelOrder(client, o.id);
   await ctx.close();
 }
@@ -309,7 +300,6 @@ console.log("\n== users (owner)");
   await page.screenshot({ path: `${SHOTS}/admin-users-desktop.png` });
   check("new account can sign in", await canSignIn(b, { role: "client", username: "Test.User", password }));
 
-  // A second browser stays signed in as Test.User: a password reset must end that session.
   const testCtx = await context(b, "desktop");
   const testPage = await login(testCtx, { role: "client", username: "Test.User", password });
 

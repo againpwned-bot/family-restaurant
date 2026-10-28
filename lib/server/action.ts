@@ -7,11 +7,6 @@ import type { Tx } from "@/lib/server/database";
 import { dbErrorKey } from "@/lib/errors";
 import type { AppRole, Profile } from "@/lib/types";
 
-/**
- * Runs a server action body as the signed-in user (row level security applies).
- * Database errors come back as stable keys ("dish_unavailable", "forbidden", ...)
- * that the UI translates; nothing internal leaks to the browser.
- */
 export async function act<T>(
   roles: readonly AppRole[] | null,
   fn: (tx: Tx, profile: Profile) => Promise<T>,

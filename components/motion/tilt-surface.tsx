@@ -8,14 +8,6 @@ import { cn } from "@/lib/utils";
 
 const SPRING = { stiffness: 180, damping: 22, mass: 0.6 };
 
-/**
- * 3D tilt that follows the pointer.
- *   full     hover tilt (mouse) + a light glare that follows the cursor
- *   lite     short tilt only while pressed (no hover, no gyroscope)
- *   reduced  flat
- * Driven by motion values (no React render per frame); only transform and
- * opacity change. will-change is set only while the surface is active.
- */
 export function TiltSurface({
   children,
   className,
@@ -28,7 +20,7 @@ export function TiltSurface({
   maxTilt?: number;
 }) {
   const { tier } = useAnimation();
-  const px = useMotionValue(0); // -0.5 .. 0.5
+  const px = useMotionValue(0);
   const py = useMotionValue(0);
   const glare = useMotionValue(0);
   const rotateY = useSpring(
@@ -77,7 +69,7 @@ export function TiltSurface({
       onPointerDown={(e) => {
         if (mode === "press" || e.pointerType !== "mouse") {
           setActive(true);
-          track(e, 0.6); // a short, gentle tilt toward the finger
+          track(e, 0.6);
         }
       }}
       onPointerUp={() => mode === "press" && reset()}

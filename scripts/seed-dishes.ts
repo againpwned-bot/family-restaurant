@@ -1,26 +1,14 @@
-// OPTIONAL example dishes, so the menu isn't empty on day one. No photos:
-// those you upload yourself from Admin -> Dishes (and you can edit or delete
-// these examples there too). Skips any dish whose name already exists.
-//
-//   npm run seed:dishes            add the examples (the first four go on today's menu)
-//   npm run seed:dishes -- --none-today   add them, but leave today's menu empty
-//
-// Stop the app first: only one process may open the database.
-
 import path from "node:path";
 
 import { dataDir, lockDataDir, openDatabase, row, rows } from "../lib/server/database";
+import { FAMILY_RECIPES, type SeedDish } from "./family-recipes";
 
 function fail(message: string): never {
   console.error(`✗ ${message}`);
   process.exit(1);
 }
 
-type SeedIngredient = [name: string, quantity: number | null, unit: string];
-type SeedDish = { name: string; description: string; cookMinutes: number; ingredients: SeedIngredient[] };
-
-// Quantities are per portion; "null" means "după gust" (to taste).
-const DISHES: SeedDish[] = [
+const EXAMPLES: SeedDish[] = [
   {
     name: "Sarmale cu mămăligă",
     description:
@@ -106,6 +94,8 @@ const DISHES: SeedDish[] = [
 
 async function main() {
   const noneToday = process.argv.includes("--none-today");
+  const family = process.argv.includes("--family");
+  const dishes = family ? FAMILY_RECIPES : EXAMPLES;
   const dir = dataDir();
   lockDataDir(dir);
   const db = await openDatabase(path.join(dir, "db"), (m) => console.log(`· ${m}`));
@@ -113,11 +103,13 @@ async function main() {
   const today = (await row<{ day: string }>(db, "select public.today_local() as day"))!.day;
   const owner = await row<{ id: string }>(db, "select id from public.profiles where role = 'owner' limit 1");
   const taken = new Set(
-    (await rows<{ name: string }>(db, "select name from public.dishes")).map((d) => d.name.toLowerCase()),
+    (await rows<{ name: string }>(db, "select name from public.dishes where archived_at is null")).map((d) =>
+      d.name.toLowerCase(),
+    ),
   );
 
   let added = 0;
-  for (const [index, dish] of DISHES.entries()) {
+  for (const [index, dish] of dishes.entries()) {
     if (taken.has(dish.name.toLowerCase())) {
       console.log(`· skipped  ${dish.name} (already exists)`);
       continue;
@@ -127,7 +119,13 @@ async function main() {
         tx,
         `insert into public.dishes (name, description, cook_minutes, available_on, created_by)
          values ($1, $2, $3, $4, $5) returning id`,
-        [dish.name, dish.description, dish.cookMinutes, !noneToday && index < 4 ? today : null, owner?.id ?? null],
+        [
+          dish.name,
+          dish.description,
+          dish.cookMinutes,
+          !noneToday && !family && index < 4 ? today : null,
+          owner?.id ?? null,
+        ],
       );
       for (const [position, [name, quantity, unit]] of dish.ingredients.entries()) {
         await tx.query(

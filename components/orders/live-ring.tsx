@@ -13,7 +13,6 @@ import type { Order } from "@/lib/types";
 const loadRing = () => import("@/components/three/timer-ring-3d");
 const TimerRing3D = dynamic(loadRing, { ssr: false });
 
-/** Desktop-full: download + parse three.js during idle time on the order screen. */
 export function usePrefetchRing3D() {
   const { tier, settled } = useAnimation();
   useEffect(() => {
@@ -25,11 +24,6 @@ export function usePrefetchRing3D() {
   }, [tier, settled]);
 }
 
-/**
- * The big ring on the order screen. Desktop-full: one 3D ring for the whole
- * life of the order (created once, then only its progress uniform changes);
- * elsewhere the CSS ring. `center` is what sits inside when there's no timer.
- */
 export function LiveRing({
   order,
   label,
@@ -38,15 +32,12 @@ export function LiveRing({
 }: {
   order: Order;
   label: string;
-  /** Non-full tiers, no running timer: the CSS ring to show instead. */
   fallback: React.ReactNode;
-  /** Desktop-full, no running timer: what sits inside the 3D ring. */
   inner: React.ReactNode;
 }) {
   const { tier, settled } = useAnimation();
   const now = useNow();
   const [idle, setIdle] = useState(false);
-  // Boot the 3D ring only when the page is idle (three.js init is one long task).
   useEffect(() => {
     if (tier !== "full" || !settled) return;
     const schedule = window.requestIdleCallback ?? ((cb: () => void) => window.setTimeout(cb, 800));

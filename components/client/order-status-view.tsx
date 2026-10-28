@@ -5,7 +5,9 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useCallback, useState } from "react";
 
-import { CancelOrderButton, STATUS_TONE, useOrderTimes } from "@/components/client/client-order-card";
+import { CancelOrderButton, STATUS_TONE, useOrderTimes, useReadyShot } from "@/components/client/client-order-card";
+import { Confetti } from "@/components/decor/confetti";
+import { CookingPot } from "@/components/decor/cooking-pot";
 import { DishPhoto } from "@/components/dish/dish-photo";
 import { StatusFlip } from "@/components/motion/status-flip";
 import { PushPrompt } from "@/components/notifications/push-prompt";
@@ -21,7 +23,6 @@ import { safe } from "@/lib/action-result";
 import type { Order, OrderEvent } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
-/** Full-screen status of one order: big timer, progress, timeline. */
 export function OrderStatusView({
   initialOrder,
   initialEvents,
@@ -40,6 +41,7 @@ export function OrderStatusView({
   const [order, setOrder] = useState(initialOrder);
   const [events, setEvents] = useState(initialEvents);
   usePrefetchRing3D();
+  const shot = useReadyShot(order.status);
 
   const resync = useCallback(async () => {
     const { data } = await safe(fetchMyOrder(initialOrder.id));
@@ -86,11 +88,14 @@ export function OrderStatusView({
         <section
           aria-labelledby="status-title"
           className={cn(
-            "grid justify-items-center gap-5 rounded-3xl border bg-card px-5 py-8 text-center shadow-sm",
-            order.status === "ready" ? "border-success ring-4 ring-success/20" : "border-border",
+            "relative grid justify-items-center gap-5 rounded-[2rem] bg-card px-5 py-8 text-center sticker",
+            order.status === "ready" && "bg-success-soft",
           )}
         >
-          <Badge className={cn("text-sm", STATUS_TONE[order.status])}>{t(`orderStatus.${order.status}`)}</Badge>
+          <Confetti shot={shot} />
+          <Badge className={cn("h-7 border-2 px-3 text-sm font-bold", STATUS_TONE[order.status])}>
+            {t(`orderStatus.${order.status}`)}
+          </Badge>
           {(() => {
             const photo = (
               <span className="relative size-24 overflow-hidden rounded-full">
@@ -112,16 +117,16 @@ export function OrderStatusView({
                 {photo}
               </TimerRing>
             );
-            // Open orders: one ring for the order's whole life (3D on desktop-full).
             return isOpen(order.status) ? (
               <LiveRing order={order} label={t("orders.timerLabel")} fallback={cssRing} inner={done ? check : photo} />
             ) : (
               cssRing
             );
           })()}
+          {order.status === "cooking" ? <CookingPot className="-my-2 size-20 text-foreground" /> : null}
           <StatusFlip statusKey={order.status} className="grid gap-1">
             <div className="grid gap-1" aria-live="polite">
-              <h1 id="status-title" className="font-heading text-2xl font-bold sm:text-3xl">
+              <h1 id="status-title" className="font-heading text-3xl font-black sm:text-4xl">
                 {t(`orders.status.${order.status}`)}
               </h1>
               {hasTimer(order) && order.eta_at ? (
@@ -152,8 +157,8 @@ export function OrderStatusView({
         </section>
 
         <div className="grid gap-4">
-          <section className="flex items-center gap-4 rounded-3xl border border-border bg-card p-4">
-            <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl bg-muted">
+          <section className="flex items-center gap-4 rounded-[1.75rem] bg-card p-4 sticker">
+            <div className="relative size-20 shrink-0 overflow-hidden rounded-2xl border-2 border-line bg-muted">
               <DishPhoto
                 dish={{ name: order.dish_name, photo_path: order.dish_photo_path }}
                 sizes="80px"
@@ -161,7 +166,7 @@ export function OrderStatusView({
               />
             </div>
             <div className="min-w-0">
-              <p className="font-heading text-xl font-bold">
+              <p className="font-heading text-2xl font-black">
                 {order.dish_name}{" "}
                 <span className="font-sans text-base whitespace-nowrap text-brand-ink">× {order.quantity}</span>
               </p>
@@ -173,24 +178,27 @@ export function OrderStatusView({
           </section>
 
           {order.comment ? (
-            <section className="rounded-3xl border border-border bg-card p-4">
+            <section className="-rotate-1 rounded-[1.75rem] border-2 border-line bg-gold-soft p-4 text-gold-ink">
               <h2 className="mb-1 flex items-center gap-2 font-sans text-sm font-bold">
                 <MessageSquareQuote className="size-4" aria-hidden="true" />
                 {t("orders.comment")}
               </h2>
-              <p className="text-muted-foreground">{order.comment}</p>
+              <p className="font-hand text-2xl leading-tight font-bold">{order.comment}</p>
             </section>
           ) : null}
 
-          <section aria-labelledby="timeline-title" className="rounded-3xl border border-border bg-card p-4">
+          <section aria-labelledby="timeline-title" className="rounded-[1.75rem] bg-card p-4 sticker">
             <h2 id="timeline-title" className="mb-3 font-sans text-sm font-bold tracking-wide uppercase">
               {t("orders.timeline")}
             </h2>
-            <ol className="relative grid gap-4 pl-6 before:absolute before:top-2 before:bottom-2 before:left-[0.4rem] before:w-0.5 before:bg-border">
-              {events.map((ev) => (
+            <ol className="relative grid gap-4 pl-7 before:absolute before:top-2 before:bottom-2 before:left-[0.45rem] before:border-l-2 before:border-dashed before:border-line/40">
+              {events.map((ev, i) => (
                 <li key={ev.id} className="relative">
                   <span
-                    className="absolute top-1.5 -left-6 size-3.5 rounded-full border-2 border-card bg-primary"
+                    className={cn(
+                      "absolute top-1 -left-7 size-4 rounded-full border-2 border-line",
+                      i === events.length - 1 ? "bg-primary" : "bg-card",
+                    )}
                     aria-hidden="true"
                   />
                   <p className="font-semibold">{eventText(ev)}</p>

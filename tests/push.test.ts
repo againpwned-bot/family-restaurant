@@ -1,8 +1,3 @@
-// Web Push delivery (lib/server/push.ts) against a real in-memory database:
-// every new notification row is rendered in the recipient's language and sent
-// to each of their browsers. Only the network call itself (web-push) is
-// replaced, so nothing leaves this computer.
-
 import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
@@ -14,7 +9,6 @@ import webpush from "web-push";
 import { openDatabase, row, withUser, type Db } from "../lib/server/database";
 import { renderPush, startPushWorker } from "../lib/server/push";
 
-// Keys are generated into a throwaway folder, not the app's data/.
 process.env.MENIU_DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), "meniu-push-"));
 
 type Sent = {

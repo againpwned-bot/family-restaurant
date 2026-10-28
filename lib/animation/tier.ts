@@ -1,15 +1,9 @@
-// Animation tiers.
-//   full     desktop with a mouse, >= 1024px, hardware GPU (target: RTX 3050)
-//   lite     touch / small screens, or desktops on a software renderer (CSS 3D, no WebGL)
-//   reduced  prefers-reduced-motion or the user's choice (short fades only)
-
 import type { AnimationPref, AnimationTier } from "@/lib/types";
 
 export type { AnimationPref, AnimationTier };
 
 export const TIER_ORDER: AnimationTier[] = ["full", "lite", "reduced"];
 
-/** Software / fallback rasterisers: no real GPU behind them. */
 const SOFTWARE_RENDERER =
   /swiftshader|llvmpipe|softpipe|lavapipe|microsoft basic render|software|mesa offscreen|gdi generic|virtualbox|vmware svga/i;
 
@@ -33,7 +27,6 @@ export function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-/** Not the user agent: what the device can actually do. */
 export function detectTier(): { tier: AnimationTier; gpu: GpuInfo | null } {
   if (prefersReducedMotion()) return { tier: "reduced", gpu: null };
   const desktop = window.matchMedia("(pointer: fine) and (hover: hover)").matches && window.innerWidth >= 1024;
@@ -42,7 +35,6 @@ export function detectTier(): { tier: AnimationTier; gpu: GpuInfo | null } {
   return { tier: gpu.webgl && !gpu.software ? "full" : "lite", gpu };
 }
 
-/** Average frames per second over `ms`, measured with requestAnimationFrame. */
 export function measureFps(ms = 3000): Promise<number> {
   return new Promise((resolve) => {
     let frames = 0;
@@ -57,7 +49,6 @@ export function measureFps(ms = 3000): Promise<number> {
   });
 }
 
-/** The tier to drop to when a tier can't keep up, or null to stay. */
 export function downgradeFor(tier: AnimationTier, fps: number): AnimationTier | null {
   if (tier === "full" && fps < 50) return "lite";
   if (tier === "lite" && fps < 45) return "reduced";

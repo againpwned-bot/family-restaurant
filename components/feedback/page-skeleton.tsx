@@ -1,6 +1,5 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** Generic loading state: title + a grid of cards, same footprint as the pages. */
 export function PageSkeleton({ cards = 6 }: { cards?: number }) {
   return (
     <div aria-busy="true" className="animate-in duration-300 fade-in">

@@ -1,6 +1,3 @@
-// Secrets generated on first start and kept in data/secrets.json (git-ignored):
-// the key that signs session cookies and the VAPID key pair for Web Push.
-
 import { createECDH, randomBytes } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -13,12 +10,10 @@ export type Secrets = {
 
 const globalCache = globalThis as typeof globalThis & { __meniuSecrets?: Secrets };
 
-// Same as dataDir() in ./database, without pulling the database into the proxy bundle.
 function dataFolder(): string {
   return path.resolve(/*turbopackIgnore: true*/ process.env.MENIU_DATA_DIR || path.join(process.cwd(), "data"));
 }
 
-/** A P-256 key pair in the URL-safe base64 form Web Push uses (same as web-push's generateVAPIDKeys). */
 function vapidKeys() {
   const ecdh = createECDH("prime256v1");
   ecdh.generateKeys();
@@ -35,7 +30,6 @@ export function secrets(): Secrets {
   try {
     stored = JSON.parse(fs.readFileSync(file, "utf8")) as Partial<Secrets>;
   } catch {
-    // first start
   }
 
   let changed = false;

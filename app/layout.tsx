@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Karla, Playfair_Display } from "next/font/google";
+import { Bricolage_Grotesque, Caveat, DM_Mono, Fraunces } from "next/font/google";
 import { cookies } from "next/headers";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -13,17 +13,30 @@ import { cn } from "@/lib/utils";
 
 import "./globals.css";
 
-// Typography from the design system: Playfair Display (headings) + Karla (body).
-// latin-ext carries the Romanian ă â î ș ț.
-const playfair = Playfair_Display({
+const fraunces = Fraunces({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-playfair",
+  axes: ["SOFT", "WONK", "opsz"],
+  style: ["normal", "italic"],
+  variable: "--font-fraunces",
   display: "swap",
 });
 
-const karla = Karla({
+const bricolage = Bricolage_Grotesque({
   subsets: ["latin", "latin-ext"],
-  variable: "--font-karla",
+  variable: "--font-bricolage",
+  display: "swap",
+});
+
+const caveat = Caveat({
+  subsets: ["latin", "latin-ext"],
+  variable: "--font-caveat",
+  display: "swap",
+});
+
+const dmMono = DM_Mono({
+  subsets: ["latin", "latin-ext"],
+  weight: ["400", "500"],
+  variable: "--font-dm-mono",
   display: "swap",
 });
 
@@ -43,8 +56,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   viewportFit: "cover",
   themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#fef2f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a0b0a" },
+    { media: "(prefers-color-scheme: light)", color: "#f5eee2" },
+    { media: "(prefers-color-scheme: dark)", color: "#161b18" },
   ],
 };
 
@@ -54,7 +67,16 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
   const profile = await getCurrentProfile();
 
   return (
-    <html lang={locale} className={cn(playfair.variable, karla.variable, theme !== "system" && theme)}>
+    <html
+      lang={locale}
+      className={cn(
+        fraunces.variable,
+        bricolage.variable,
+        caveat.variable,
+        dmMono.variable,
+        theme !== "system" && theme,
+      )}
+    >
       <body className="min-h-dvh antialiased">
         <NextIntlClientProvider>
           <MotionProvider>
@@ -70,9 +92,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
             theme={theme}
             position="bottom-center"
             offset={{ bottom: 24 }}
-            mobileOffset={{ bottom: "calc(5.25rem + env(safe-area-inset-bottom))" }}
+            mobileOffset={{ bottom: "calc(6.5rem + env(safe-area-inset-bottom))" }}
             richColors
             closeButton
+            visibleToasts={3}
           />
         </NextIntlClientProvider>
       </body>

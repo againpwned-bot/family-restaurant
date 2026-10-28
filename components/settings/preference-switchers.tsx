@@ -11,7 +11,6 @@ import { LOCALES } from "@/i18n/config";
 import type { ThemePref } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 
-/** Radio-group style segmented control (arrow keys move between options). */
 export function Segmented<T extends string>({
   label,
   value,
@@ -30,7 +29,7 @@ export function Segmented<T extends string>({
       role="radiogroup"
       aria-label={label}
       className={cn(
-        "inline-flex flex-wrap gap-1 rounded-2xl border border-border bg-muted/60 p-1",
+        "inline-flex flex-wrap gap-1 rounded-2xl border-2 border-line bg-muted/60 p-1",
         disabled && "opacity-70",
       )}
       onKeyDown={(event) => {

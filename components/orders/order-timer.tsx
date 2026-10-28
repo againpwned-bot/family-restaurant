@@ -15,7 +15,6 @@ export function timerState(order: Pick<Order, "eta_at" | "timer_minutes" | "deci
   return { remaining, overdue: remaining < 0, progress };
 }
 
-/** Countdown text + a progress bar animated with transform: scaleX only. */
 export function OrderTimerBar({
   order,
   className,

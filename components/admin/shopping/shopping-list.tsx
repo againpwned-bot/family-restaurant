@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ClipboardCopy, RotateCcw, Share2 } from "lucide-react";
+import { Check, ClipboardCopy, Download, Printer, RotateCcw, Share2 } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
@@ -107,7 +107,7 @@ export function ShoppingList({ initial, today }: { initial: ShoppingData; today:
 
   if (!items.length) {
     return (
-      <p className="rounded-2xl border border-dashed border-border bg-card px-6 py-14 text-center text-muted-foreground">
+      <p className="rounded-[1.75rem] border-2 border-dashed border-line/50 bg-card px-6 py-14 text-center text-muted-foreground">
         {t("adminShopping.empty")}
       </p>
     );
@@ -121,9 +121,7 @@ export function ShoppingList({ initial, today }: { initial: ShoppingData; today:
       .join(", ");
     return (
       <li key={item.key}>
-        <div
-          className={cn("flex items-start gap-3 rounded-2xl border border-border bg-card p-3", done && "bg-muted/50")}
-        >
+        <div className={cn("flex items-start gap-3 rounded-[1.5rem] bg-card sticker p-3", done && "bg-muted/50")}>
           <button
             id={id}
             type="button"
@@ -169,7 +167,7 @@ export function ShoppingList({ initial, today }: { initial: ShoppingData; today:
 
   return (
     <div className="grid grid-cols-1 gap-6">
-      <div className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 rounded-[1.5rem] bg-card sticker p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="grid gap-2">
           <p className="font-bold" role="status" aria-live="polite">
             {t("adminShopping.progress", { done: bought.length, total: items.length })}
@@ -206,6 +204,18 @@ export function ShoppingList({ initial, today }: { initial: ShoppingData; today:
           >
             <ClipboardCopy aria-hidden="true" />
             {t("adminShopping.copy")}
+          </Button>
+          <Button asChild variant="outline">
+            <a href="/admin/export/shopping" download>
+              <Download aria-hidden="true" />
+              {t("history.exportCsv")}
+            </a>
+          </Button>
+          <Button asChild variant="outline">
+            <a href="/print/shopping" target="_blank" rel="noopener">
+              <Printer aria-hidden="true" />
+              {t("history.print")}
+            </a>
           </Button>
           <Button
             variant="ghost"

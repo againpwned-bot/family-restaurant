@@ -12,11 +12,6 @@ import type { AppRole, Profile } from "@/lib/types";
 
 export type Session = { sessionId: string; profile: Profile };
 
-/**
- * Data access layer: who is signed in, checked once per request. The cookie
- * signature proves it was issued here; the database proves the session is
- * still open (not signed out, password not reset) and gives the current role.
- */
 export const getSession = cache(async (): Promise<Session | null> => {
   const claims = decodeSession((await cookies()).get(SESSION_COOKIE)?.value);
   if (!claims) return null;
@@ -24,11 +19,10 @@ export const getSession = cache(async (): Promise<Session | null> => {
   const profile = await row<Profile>(
     db,
     `select p.* from auth.sessions s join public.profiles p on p.id = s.user_id
-      where s.id = $1 and s.user_id = $2`,
+      where s.id = $1 and s.user_id = $2 and p.disabled_at is null`,
     [claims.sid, claims.uid],
   );
   if (!profile) return null;
-  // Rough "last seen", at most once a minute per session.
   void db
     .query("update auth.sessions set last_seen_at = now() where id = $1 and last_seen_at < now() - interval '1 minute'", [
       claims.sid,
@@ -39,12 +33,9 @@ export const getSession = cache(async (): Promise<Session | null> => {
 
 export const getCurrentProfile = cache(async (): Promise<Profile | null> => (await getSession())?.profile ?? null);
 
-/** Profile of the signed-in user, or a redirect if missing / not allowed here. */
 export async function requireProfile(options?: { roles?: AppRole[]; path?: string }): Promise<Profile> {
   const profile = await getCurrentProfile();
   if (!profile) {
-    // A cookie that no longer matches an open session must be cleared first,
-    // otherwise the proxy would keep sending the browser back here.
     const hasCookie = (await cookies()).has(SESSION_COOKIE);
     redirect(hasCookie ? "/logout" : "/login");
   }

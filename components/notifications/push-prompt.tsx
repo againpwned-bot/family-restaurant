@@ -9,7 +9,6 @@ import { DeniedHelp, usePushState } from "@/components/notifications/push-toggle
 import { Button } from "@/components/ui/button";
 import { enablePush, hidePushPromptFromNowOn } from "@/lib/push";
 
-/** Small card that offers notifications where they matter (orders pages). */
 export function PushPrompt() {
   const t = useTranslations("push");
   const [state, setState] = usePushState({ deferred: true });
@@ -21,20 +20,17 @@ export function PushPrompt() {
     setDismissed(true);
   };
 
-  // Already on, or not possible here: don't offer it again on this browser.
   useEffect(() => {
     if (state === "enabled" || state === "unsupported" || state === "not-configured") hidePushPromptFromNowOn();
   }, [state]);
 
-  // Rendered on the server (state === null) so it paints with the page; the
-  // server leaves it out entirely once the cookie says it's no longer needed.
   if (dismissed || state === "enabled" || state === "unsupported" || state === "not-configured") return null;
   if (state === "denied") return <DeniedHelp onDismiss={dismiss} />;
 
   return (
-    <aside className="flex flex-col gap-3 rounded-3xl border border-gold/40 bg-gold-soft p-4 text-gold-ink sm:flex-row sm:items-center">
-      <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-card text-gold-ink">
-        <BellRing className="size-5" aria-hidden="true" />
+    <aside className="flex flex-col gap-3 rounded-[1.75rem] border-2 border-line bg-gold-soft p-4 text-gold-ink shadow-[4px_4px_0_var(--shadow-hard)] sm:flex-row sm:items-center">
+      <span className="grid size-11 shrink-0 place-items-center rounded-full border-2 border-line bg-gold text-gold-foreground">
+        <BellRing className="size-5 origin-top animate-[wiggle_0.8s_ease-in-out_1s_3]" aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1">
         <p className="font-bold">{t("promptTitle")}</p>

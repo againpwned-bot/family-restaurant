@@ -2,12 +2,17 @@
 
 import { act } from "@/lib/server/action";
 import { row, type Tx } from "@/lib/server/database";
-import { activeOrders, boardOrders, orderEvents, orderHistory, ownOrder, peopleNames } from "@/lib/server/queries";
+import {
+  activeOrders,
+  boardOrders,
+  orderEvents,
+  orderHistory,
+  ownOrder,
+  peopleDiets,
+  peopleNames,
+} from "@/lib/server/queries";
 import { kitchenDayStart } from "@/lib/dates";
 import type { Order } from "@/lib/types";
-
-// Order actions. The status machine itself lives in the database functions
-// (db/migrations/0003_order_functions.sql); these only call them as the user.
 
 const STAFF = ["owner", "admin"] as const;
 const CLIENTS = ["owner", "client"] as const;
@@ -52,12 +57,11 @@ export async function handOverOrder(orderId: string) {
   return act(STAFF, call("hand_over_order", [orderId]));
 }
 
-// --- refreshes (after reconnecting, or when the tab becomes visible) --------
-
 export async function fetchBoard() {
   return act(STAFF, async (tx) => ({
     orders: await boardOrders(tx, kitchenDayStart().toISOString()),
     people: await peopleNames(tx),
+    diets: await peopleDiets(tx),
   }));
 }
 

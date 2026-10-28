@@ -2,11 +2,6 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
-/**
- * Circular progress drawn with two rotating half-discs, so the only animated
- * property is `transform` (no stroke-dashoffset / conic-gradient repaints).
- * `progress` goes 0 -> 1 clockwise from 12 o'clock.
- */
 export function TimerRing({
   progress,
   size = 72,
@@ -33,14 +28,12 @@ export function TimerRing({
   return (
     <div className={cn("relative shrink-0 rounded-full", className)} style={{ width: size, height: size }}>
       <div className="absolute inset-0 rounded-full bg-muted" />
-      {/* right half: a left half-disc rotating into view */}
       <div className="absolute inset-0 [clip-path:inset(0_0_0_50%)]">
         <div
           className={cn("absolute inset-0 rounded-full [clip-path:inset(0_50%_0_0)]", fill, turn)}
           style={{ transform: `rotate(${right}deg)` }}
         />
       </div>
-      {/* left half: a right half-disc, starts once the right half is full */}
       <div className="absolute inset-0 [clip-path:inset(0_50%_0_0)]">
         <div
           className={cn("absolute inset-0 rounded-full [clip-path:inset(0_0_0_50%)]", fill, turn)}

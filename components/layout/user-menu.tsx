@@ -7,7 +7,7 @@ import { useTransition } from "react";
 
 import { logout } from "@/app/login/actions";
 import { forgetThisDevice } from "@/lib/push";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/layout/user-avatar";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -20,12 +20,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { AppRole } from "@/lib/types";
 
-export type ShellUser = { displayName: string; username: string; role: AppRole };
+export { initials } from "@/components/layout/user-avatar";
 
-export function initials(name: string) {
-  const parts = name.trim().split(/\s+/);
-  return ((parts[0]?.[0] ?? "") + (parts[1]?.[0] ?? "")).toUpperCase() || "?";
-}
+export type ShellUser = { displayName: string; username: string; role: AppRole; avatarPath: string | null };
 
 export function UserMenu({
   user,
@@ -34,7 +31,6 @@ export function UserMenu({
 }: {
   user: ShellUser;
   settingsHref: string;
-  /** Owner only: link to the other side of the app. */
   switchTo?: { href: string; label: string };
 }) {
   const t = useTranslations();
@@ -44,11 +40,7 @@ export function UserMenu({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" size="icon" className="rounded-full" aria-label={t("nav.account")}>
-          <Avatar className="size-9">
-            <AvatarFallback className="bg-secondary font-bold text-secondary-foreground">
-              {initials(user.displayName)}
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar name={user.displayName} path={user.avatarPath} className="size-9" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-60">

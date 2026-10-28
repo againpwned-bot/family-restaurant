@@ -3,7 +3,6 @@
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 import { CircleCheckIcon, InfoIcon, TriangleAlertIcon, OctagonXIcon, Loader2Icon } from "lucide-react"
 
-// The theme comes from the root layout (cookie-based), so no next-themes here.
 const Toaster = ({ theme = "system", ...props }: ToasterProps) => {
   return (
     <Sonner

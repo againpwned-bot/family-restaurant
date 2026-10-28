@@ -1,12 +1,17 @@
-// Row types for the schema in db/migrations (kept in sync by hand).
-// Timestamps arrive as ISO strings and dates as "YYYY-MM-DD" (see lib/server/database.ts).
-
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export type AppRole = "owner" | "admin" | "client";
 export type OrderStatus = "received" | "accepted" | "cooking" | "ready" | "handed_over" | "rejected" | "cancelled";
 export type NotificationType =
-  "order_new" | "order_cancelled" | "order_accepted" | "order_rejected" | "order_ready" | "order_extended" | "test";
+  | "order_new"
+  | "order_cancelled"
+  | "order_accepted"
+  | "order_rejected"
+  | "order_ready"
+  | "order_extended"
+  | "test"
+  | "broadcast"
+  | "chat_message";
 export type AnimationPref = "auto" | "full" | "lite" | "reduced";
 export type AnimationTier = "full" | "lite" | "reduced";
 export type Locale = "ro" | "en";
@@ -19,9 +24,42 @@ export type Profile = {
   locale: Locale;
   animation_pref: AnimationPref;
   animation_detected: AnimationTier | null;
+  allergies: string;
+  diet_tags: DietTag[];
+  avatar_path: string | null;
+  disabled_at: string | null;
   created_at: string;
   updated_at: string;
 };
+
+export const DIET_TAGS = [
+  "vegetarian",
+  "vegan",
+  "gluten_free",
+  "lactose_free",
+  "nut_allergy",
+  "no_pork",
+  "not_spicy",
+] as const;
+export type DietTag = (typeof DIET_TAGS)[number];
+export type DietInfo = { allergies: string; tags: DietTag[] };
+
+export const DISH_TAGS = [
+  "vegetarian",
+  "vegan",
+  "spicy",
+  "soup",
+  "main",
+  "side",
+  "salad",
+  "dessert",
+  "gluten_free",
+  "kids",
+] as const;
+export type DishTag = (typeof DISH_TAGS)[number];
+
+export const MEALS = ["breakfast", "lunch", "dinner"] as const;
+export type Meal = (typeof MEALS)[number];
 
 export type Dish = {
   id: string;
@@ -31,8 +69,10 @@ export type Dish = {
   photo_width: number | null;
   photo_height: number | null;
   photo_blur: string | null;
-  cook_minutes: number;
+  cook_minutes: number | null;
   available_on: string | null;
+  tags: DishTag[];
+  meal: Meal | null;
   archived_at: string | null;
   created_by: string | null;
   created_at: string;
@@ -110,4 +150,42 @@ export type ShoppingCheck = {
   quantity: number | null;
   checked_by: string | null;
   checked_at: string;
+};
+
+export type AppSettings = {
+  require_push: boolean;
+  cutoff_breakfast: string | null;
+  cutoff_lunch: string | null;
+  cutoff_dinner: string | null;
+  cutoff_all: string | null;
+  updated_at: string;
+};
+
+export type ChatMessage = {
+  id: string;
+  conversation: string;
+  sender_id: string;
+  body: string;
+  created_at: string;
+};
+
+export type Broadcast = {
+  id: string;
+  title: string;
+  body: string;
+  audience: "everyone" | "clients" | "staff" | "people";
+  recipient_count: number;
+  sent_by: string | null;
+  created_at: string;
+};
+
+export type AuditEntry = {
+  id: string;
+  actor_id: string | null;
+  action: string;
+  entity: string;
+  entity_id: string | null;
+  label: string | null;
+  changes: Record<string, { from: Json; to: Json }>;
+  created_at: string;
 };

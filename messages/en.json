@@ -60,9 +60,11 @@
       "required": "Enter your username and password.",
       "invalid": "Wrong username or password.",
       "rate_limited": "Too many attempts. Wait a little and try again.",
-      "no_access": "This account has no access to Home Menu.",
+      "no_access": "This account has been deactivated. Ask the owner to turn it back on.",
       "unknown": "Something went wrong. Please try again."
-    }
+    },
+    "scribble": "Hungry?",
+    "stamp": "The family kitchen • The home menu • "
   },
   "nav": {
     "main": "Main navigation",
@@ -80,7 +82,13 @@
     "more": "More",
     "account": "My account",
     "logout": "Sign out",
-    "loggingOut": "Signing you out…"
+    "loggingOut": "Signing you out…",
+    "planner": "Planner",
+    "history": "History",
+    "stats": "Stats",
+    "chat": "Chat",
+    "broadcasts": "Announcements",
+    "audit": "Audit log"
   },
   "settings": {
     "title": "Settings",
@@ -149,7 +157,15 @@
       "invalid_item": "Invalid item.",
       "invalid_photo": "The photo couldn't be saved. Try another picture (JPEG, PNG or WebP).",
       "network": "No connection. Check the internet and try again.",
-      "unknown": "Something went wrong. Please try again."
+      "unknown": "Something went wrong. Please try again.",
+      "ordering_closed": "Orders for this dish are closed for today.",
+      "invalid_day": "Pick a day from today onwards.",
+      "menu_empty": "There's nothing on that day's menu to save.",
+      "template_not_found": "This template no longer exists.",
+      "invalid_broadcast": "Write a title (max. 80 characters) and a message of at most 300 characters.",
+      "no_recipients": "Nobody would receive this announcement.",
+      "invalid_message": "Messages can have 1–2000 characters.",
+      "user_not_found": "This person no longer exists."
     }
   },
   "home": {
@@ -178,7 +194,10 @@
     "flipBack": "Back to the photo",
     "flip": "See the ingredients of {name}",
     "flipBackLabel": "Back to the photo of {name}",
-    "noIngredientsShort": "No ingredients listed"
+    "noIngredientsShort": "No ingredients listed",
+    "marquee": "Cooked with love",
+    "stamp": "Cooked with love • The home menu • ",
+    "tagsLabel": "Tags"
   },
   "admin": {
     "greeting": "Hi, {name}!",
@@ -257,7 +276,8 @@
       "off": "Sound off",
       "blocked": "Tap anywhere on the page to turn the sound on."
     },
-    "tabsLabel": "Filter by status"
+    "tabsLabel": "Filter by status",
+    "printTicket": "Print the ticket for order #{number}"
   },
   "adminDishes": {
     "title": "Dishes",
@@ -288,11 +308,11 @@
       "photoInfo": "{width} × {height} px · {size}",
       "photoError": "The photo could not be read. Try another file.",
       "photoTooLarge": "The file is too large (max. 40 MB).",
-      "cookMinutes": "Estimated cooking time (minutes)",
+      "cookMinutes": "Estimated cooking time (minutes, optional)",
       "availableToday": "Available today",
       "availableTodayHint": "Shows up on today's menu for the family.",
       "ingredients": "Ingredients",
-      "ingredientsHint": "Amounts for one portion. Leave the amount empty for “to taste”.",
+      "ingredientsHint": "Amounts for the whole recipe. Leave the amount empty when it isn't given.",
       "ingredientName": "Ingredient",
       "ingredientPlaceholder": "e.g. Rice",
       "quantity": "Amount",
@@ -323,7 +343,11 @@
         "uploadFailed": "The photo could not be uploaded. Check the internet and try again.",
         "fixErrors": "Fix the highlighted fields."
       },
-      "unitSuggestions": "g,kg,ml,l,pcs,tbsp,tsp,cup,cloves,bunch,pinch"
+      "unitSuggestions": "g,kg,ml,l,pcs,tbsp,tsp,cup,cloves,bunch,pinch",
+      "meal": "Meal",
+      "mealNone": "Any time",
+      "mealHint": "Used for the order cut-off times set in Settings.",
+      "tags": "Tags"
     }
   },
   "adminMenu": {
@@ -346,13 +370,13 @@
   },
   "adminShopping": {
     "title": "Shopping list",
-    "description": "Worked out from accepted orders and the ones cooking.",
+    "description": "Worked out from accepted orders and the ones cooking: one whole recipe for each dish ordered.",
     "empty": "No accepted orders right now, so there's nothing to buy.",
     "toBuy": "To buy",
     "bought": "Bought",
     "forDishes": "for {dishes}",
-    "dishQuantity": "{name} × {quantity}",
-    "toTaste": "to taste",
+    "dishQuantity": "{name} ({quantity, plural, one {# portion ordered} other {# portions ordered}})",
+    "toTaste": "no amount given",
     "partial": "You got {bought}; {missing} more needed.",
     "markBought": "I bought {name}",
     "reset": "Reset ticks",
@@ -407,9 +431,17 @@
       "lastOwner": "At least one owner must remain.",
       "cannotChangeOwnRole": "You can't change your own role.",
       "notFound": "This user no longer exists.",
-      "unknown": "Something went wrong. Please try again."
+      "unknown": "Something went wrong. Please try again.",
+      "cannotDisableSelf": "You can't deactivate your own account.",
+      "invalidPhoto": "The picture couldn't be saved. Try another one."
     },
-    "createdAt": "Created"
+    "createdAt": "Created",
+    "activity": "Activity",
+    "disabled": "Deactivated",
+    "disable": "Deactivate account",
+    "enable": "Reactivate account",
+    "disabledDone": "{name} was deactivated and signed out everywhere.",
+    "enabled": "{name} can sign in again."
   },
   "notifications": {
     "region": "Notifications",
@@ -443,6 +475,15 @@
     "test": {
       "title": "Notifications work!",
       "body": "This is how you'll know the food is ready."
+    },
+    "broadcast": {
+      "title": "{title}",
+      "body": "{body}"
+    },
+    "chat_message": {
+      "title": "{from}",
+      "titleGroup": "{from} · Family chat",
+      "body": "{preview}"
     }
   },
   "dish": {
@@ -450,8 +491,8 @@
     "cookTime": "Ready in about {minutes} min",
     "onMenu": "On today's menu",
     "ingredients": "Ingredients",
-    "ingredientsHint": "for one portion",
-    "toTaste": "to taste",
+    "ingredientsHint": "for the whole recipe",
+    "toTaste": "no amount given",
     "noIngredients": "No ingredients listed.",
     "notToday": "This dish isn't on today's menu, so it can't be ordered right now.",
     "view3d": "3D plate",
@@ -474,7 +515,9 @@
     "submit": "Send order",
     "submitting": "Sending…",
     "sent": "Your order was sent! We'll let you know when it's accepted.",
-    "timeInvalid": "Pick a valid time."
+    "timeInvalid": "Pick a valid time.",
+    "closesAt": "Orders for this dish close at {time}.",
+    "closed": "Orders for this dish closed at {time}. Check back tomorrow!"
   },
   "orders": {
     "title": "My orders",
@@ -571,5 +614,310 @@
     "downgraded": "Switched to reduced animations for smoothness",
     "undo": "Undo",
     "saved": "Preference saved."
+  },
+  "meals": {
+    "breakfast": "Breakfast",
+    "lunch": "Lunch",
+    "dinner": "Dinner"
+  },
+  "dishTags": {
+    "vegetarian": "Vegetarian",
+    "vegan": "Vegan",
+    "spicy": "Spicy",
+    "soup": "Soup",
+    "main": "Main course",
+    "side": "Side dish",
+    "salad": "Salad",
+    "dessert": "Dessert",
+    "gluten_free": "Gluten-free",
+    "kids": "Kids' favourite"
+  },
+  "dietTags": {
+    "vegetarian": "Vegetarian",
+    "vegan": "Vegan",
+    "gluten_free": "No gluten",
+    "lactose_free": "No lactose",
+    "nut_allergy": "Nut allergy",
+    "no_pork": "No pork",
+    "not_spicy": "Nothing spicy"
+  },
+  "diet": {
+    "warning": "Allergies / diet"
+  },
+  "chat": {
+    "unread": "{count, plural, one {# unread message} other {# unread messages}}",
+    "title": "Chat",
+    "description": "Talk to the whole family or to one person.",
+    "conversations": "Conversations",
+    "group": "Family chat",
+    "groupHint": "Everyone in the family",
+    "startHint": "Say hi!",
+    "someone": "Someone",
+    "you": "You",
+    "pick": "Pick a conversation on the left.",
+    "back": "Back to conversations",
+    "older": "Show older messages",
+    "empty": "No messages yet. Write the first one!",
+    "placeholder": "Write a message…",
+    "send": "Send",
+    "sendError": "The message couldn't be sent. Please try again."
+  },
+  "pushGate": {
+    "title": "Turn on notifications",
+    "text": "The kitchen uses notifications to tell you when food is ready and to send announcements. Turn them on for this device to continue.",
+    "deniedText": "Notifications are blocked for this site. Allow them in the browser settings, then check again.",
+    "stillBlocked": "Notifications are still blocked.",
+    "checkAgain": "I allowed them, check again",
+    "signOut": "Sign out"
+  },
+  "planner": {
+    "title": "Menu planner",
+    "description": "Plan the menu days ahead. Planned dishes appear on the menu automatically on their day.",
+    "previousWeek": "Previous week",
+    "nextWeek": "Next week",
+    "thisWeek": "This week",
+    "copyLastWeek": "Copy last week",
+    "copiedWeek": "{count, plural, =0 {Nothing new to copy from last week.} one {Copied # dish from last week.} other {Copied # dishes from last week.}}",
+    "copyToNextDay": "Copy to the next day",
+    "copiedDay": "{count, plural, =0 {Nothing new to copy.} one {Copied # dish.} other {Copied # dishes.}}",
+    "dayActions": "Day actions",
+    "edit": "Choose dishes",
+    "editHint": "{count, plural, =0 {Nothing picked yet.} one {# dish picked.} other {# dishes picked.}} Changes save straight away.",
+    "remove": "Take {name} off this day",
+    "empty": "Nothing planned",
+    "clear": "Clear the day",
+    "cleared": "The day was cleared.",
+    "applyTemplate": "Use a template",
+    "templateApplied": "{count, plural, =0 {“{name}” added nothing new.} one {Added # dish from “{name}”.} other {Added # dishes from “{name}”.}}",
+    "saveTemplate": "Save as template",
+    "saveTemplateHint": "Save this day's dishes so you can reuse them, e.g. “Sunday dinner”.",
+    "templateName": "Template name",
+    "templateNamePlaceholder": "e.g. Sunday dinner",
+    "templateSaved": "Template “{name}” saved.",
+    "templates": "Templates",
+    "templatesHint": "Ready-made menus you can drop onto any day from the day's ⋯ menu.",
+    "noTemplates": "No templates yet. Plan a day, then use “Save as template”.",
+    "deleteTemplate": "Delete template {name}",
+    "templateDeleted": "Template deleted."
+  },
+  "history": {
+    "title": "Order history",
+    "description": "Every order ever placed. Filter by date, person, dish or status.",
+    "from": "From",
+    "to": "To",
+    "person": "Person",
+    "everyone": "Everyone",
+    "dish": "Dish",
+    "dishPlaceholder": "e.g. sarmale",
+    "status": "Status",
+    "anyStatus": "Any status",
+    "apply": "Filter",
+    "reset": "Clear filters",
+    "showing": "{count, plural, =0 {No orders} one {# order shown} other {# orders shown}}",
+    "allTime": "All time",
+    "exportCsv": "Export CSV",
+    "print": "Print / PDF",
+    "printTicket": "Print ticket",
+    "empty": "No orders match these filters.",
+    "events": {
+      "created": "Ordered",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "cooking": "Started cooking",
+      "extended": "Time extended",
+      "ready": "Ready",
+      "handed_over": "Handed over",
+      "cancelled": "Cancelled"
+    }
+  },
+  "export": {
+    "columns": {
+      "number": "Number",
+      "placed": "Placed",
+      "client": "Person",
+      "dish": "Dish",
+      "quantity": "Portions",
+      "status": "Status",
+      "requested": "Wanted for",
+      "notes": "Notes",
+      "reason": "Rejection reason",
+      "ready": "Ready at",
+      "handedOver": "Handed over at"
+    },
+    "shopping": {
+      "item": "Item",
+      "quantity": "Amount",
+      "unit": "Unit",
+      "dishes": "For",
+      "bought": "Bought"
+    }
+  },
+  "print": {
+    "print": "Print",
+    "pdfHint": "To get a PDF, pick “Save as PDF” as the printer."
+  },
+  "stats": {
+    "title": "Stats",
+    "description": "How the kitchen is doing: orders per day, busiest hours and favourite dishes.",
+    "range": "Time range",
+    "lastDays": "Last {days} days",
+    "ordersValue": "{count, plural, one {# order} other {# orders}}",
+    "portionsValue": "{count, plural, one {# portion} other {# portions}}",
+    "minutes": "{minutes} min",
+    "tiles": {
+      "orders": "Orders",
+      "portions": "{count, plural, one {# portion} other {# portions}}",
+      "people": "People who ordered",
+      "avgReady": "Average wait",
+      "avgReadyNote": "from order to “Ready!”",
+      "handedOver": "Handed over",
+      "rejectedCancelled": "{rejected} rejected · {cancelled} cancelled"
+    },
+    "perDay": "Orders per day",
+    "byHour": "Busiest hours",
+    "hourRange": "{from}:00–{to}:00",
+    "topDishes": "Most ordered dishes",
+    "topPeople": "Who orders most",
+    "empty": "No orders in this period.",
+    "showTable": "Show as a table"
+  },
+  "broadcasts": {
+    "title": "Announcements",
+    "description": "Send a push notification to the family, like “Dinner's ready!”.",
+    "quickLabel": "Quick picks",
+    "quick1": "Dinner's ready!",
+    "quick2": "The menu was updated",
+    "quick3": "The kitchen is closed today",
+    "titleLabel": "Title",
+    "bodyLabel": "Message",
+    "audience": "Who gets it",
+    "audiences": {
+      "everyone": "Everyone",
+      "clients": "Family (clients)",
+      "staff": "Kitchen staff",
+      "people": "Pick people"
+    },
+    "pushNote": "It arrives as a notification on every device where notifications are on, and as a banner in the app.",
+    "send": "Send announcement",
+    "sent": "{count, plural, one {Sent to # person.} other {Sent to # people.}}",
+    "history": "Sent recently",
+    "recipients": "{count, plural, one {# recipient} other {# recipients}}",
+    "none": "No announcements yet."
+  },
+  "audit": {
+    "title": "Audit log",
+    "description": "Who changed which dish, order, user or setting, and when.",
+    "filter": "Filter by type",
+    "system": "System",
+    "to": "to",
+    "empty": "Nothing recorded yet.",
+    "older": "Older entries",
+    "entities": {
+      "all": "Everything",
+      "dish": "Dishes",
+      "user": "Users",
+      "order": "Orders",
+      "template": "Templates",
+      "settings": "Settings",
+      "broadcast": "Announcements"
+    },
+    "actions": {
+      "dish": {
+        "insert": "Added dish “{label}”",
+        "update": "Changed dish “{label}”",
+        "delete": "Deleted dish “{label}”"
+      },
+      "user": {
+        "insert": "Created account “{label}”",
+        "update": "Changed account “{label}”",
+        "delete": "Deleted account “{label}”",
+        "password_reset": "Reset the password of “{label}”"
+      },
+      "template": {
+        "insert": "Saved template “{label}”",
+        "update": "Changed template “{label}”",
+        "delete": "Deleted template “{label}”"
+      },
+      "settings": {
+        "update": "Changed the kitchen settings"
+      },
+      "broadcast": {
+        "insert": "Sent announcement “{label}”"
+      }
+    },
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "cook_minutes": "Cooking time",
+      "available_on": "On the menu for",
+      "archived_at": "Archived",
+      "tags": "Tags",
+      "meal": "Meal",
+      "display_name": "Name",
+      "username": "Username",
+      "role": "Role",
+      "allergies": "Allergies",
+      "diet_tags": "Diet",
+      "avatar_path": "Profile picture",
+      "disabled_at": "Deactivated",
+      "require_push": "Notifications required",
+      "cutoff_breakfast": "Breakfast cut-off",
+      "cutoff_lunch": "Lunch cut-off",
+      "cutoff_dinner": "Dinner cut-off",
+      "cutoff_all": "Last orders",
+      "dish_ids": "Dishes",
+      "title": "Title",
+      "body": "Message",
+      "audience": "Audience",
+      "recipient_count": "Recipients"
+    }
+  },
+  "userActivity": {
+    "back": "Back to users",
+    "never": "never",
+    "lastSignIn": "Last signed in: {when}",
+    "member": "account created {when}",
+    "orders": "Orders",
+    "portions": "Portions",
+    "handedOver": "Handed over",
+    "rejectedCancelled": "Rejected or cancelled",
+    "favourites": "Favourite dishes",
+    "recent": "Latest orders",
+    "allOrders": "All orders",
+    "noOrders": "No orders yet."
+  },
+  "avatar": {
+    "title": "Profile picture",
+    "description": "Shown in the chat, the menu bar and on orders.",
+    "choose": "Choose a picture",
+    "change": "Change picture",
+    "remove": "Remove",
+    "saved": "Profile picture saved.",
+    "removed": "Profile picture removed.",
+    "tooLarge": "That file is too large (max. 40 MB).",
+    "error": "The picture couldn't be read. Try another file."
+  },
+  "dietEditor": {
+    "title": "Allergies & diet",
+    "description": "The kitchen sees this in big red letters on every order you place.",
+    "ownerDescription": "Shown in red on this person's orders and kitchen tickets.",
+    "tags": "Diet",
+    "allergies": "Allergies and other notes",
+    "allergiesPlaceholder": "e.g. allergic to peanuts, no mushrooms",
+    "saved": "Saved."
+  },
+  "kitchen": {
+    "title": "Kitchen",
+    "description": "Order cut-off times and notification rules for everyone.",
+    "saved": "Kitchen settings saved.",
+    "cutoffs": "Order cut-off times",
+    "cutoffsHint": "After this time, today's dishes for that meal can't be ordered any more. Set the meal on each dish. Leave empty for no limit.",
+    "cutoffBreakfast": "Breakfast",
+    "cutoffLunch": "Lunch",
+    "cutoffDinner": "Dinner",
+    "cutoffAll": "Last orders (all dishes)",
+    "noLimit": "No limit",
+    "requirePush": "Require notifications",
+    "requirePushHint": "Everyone must turn on notifications before using the app. Browsers that can't receive notifications (e.g. iPhone Safari outside the installed app) are let through."
   }
 }

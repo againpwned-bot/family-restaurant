@@ -1,7 +1,3 @@
-// Short notification chimes synthesised with Web Audio (no audio files to
-// download). Browsers only allow sound after a user gesture, so the context is
-// unlocked on the first tap / key press.
-
 type Kind = "order" | "ready" | "alert";
 
 let ctx: AudioContext | null = null;
@@ -52,14 +48,13 @@ export function setMuted(muted: boolean) {
   try {
     localStorage.setItem(MUTE_KEY, muted ? "1" : "0");
   } catch {
-    // storage unavailable: keep the default
   }
 }
 
 const NOTES: Record<Kind, number[]> = {
-  order: [660, 880, 1046.5], // rising: something new
-  ready: [784, 988, 1318.5], // bright: food is ready
-  alert: [523.25, 392], // falling: cancelled / rejected
+  order: [660, 880, 1046.5],
+  ready: [784, 988, 1318.5],
+  alert: [523.25, 392],
 };
 
 export function playChime(kind: Kind = "order") {

@@ -3,8 +3,6 @@
 import en from "@/messages/en.json";
 import ro from "@/messages/ro.json";
 
-// Last-resort boundary (the root layout itself failed), so there is no i18n
-// provider here: the text comes straight from both translation files.
 export default function GlobalError({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
     <html lang="ro">
@@ -15,8 +13,8 @@ export default function GlobalError({ retry }: { error: Error & { digest?: strin
           placeItems: "center",
           minHeight: "100dvh",
           margin: 0,
-          background: "#fef2f2",
-          color: "#450a0a",
+          background: "#f5eee2",
+          color: "#1d1915",
         }}
       >
         <main style={{ textAlign: "center", padding: 24 }}>
@@ -32,7 +30,7 @@ export default function GlobalError({ retry }: { error: Error & { digest?: strin
               padding: "12px 20px",
               borderRadius: 10,
               border: 0,
-              background: "#dc2626",
+              background: "#b8321a",
               color: "#fff",
               fontWeight: 600,
               cursor: "pointer",

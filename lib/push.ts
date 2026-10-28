@@ -1,11 +1,7 @@
-// Browser helpers for Web Push. Permission is only ever requested from an
-// explicit button click (never automatically).
-
 import { pushPublicKey, registerPushSubscription, removePushSubscription } from "@/app/actions/notifications";
 
 export type PushState = "unsupported" | "not-configured" | "default" | "denied" | "enabled" | "disabled";
 
-// The server generates its VAPID keys on first start; ask it for the public one once.
 let vapidKey: Promise<string> | null = null;
 function serverKey(): Promise<string> {
   vapidKey ??= pushPublicKey()
@@ -13,12 +9,11 @@ function serverKey(): Promise<string> {
     .catch(() => "");
   const pending = vapidKey;
   void pending.then((key) => {
-    if (!key && vapidKey === pending) vapidKey = null; // try again next time
+    if (!key && vapidKey === pending) vapidKey = null;
   });
   return pending;
 }
 
-/** Set once notifications are on (or the prompt was dismissed): the server then skips the prompt. */
 export const PUSH_PROMPT_COOKIE = "push-prompt";
 
 export function hidePushPromptFromNowOn() {
@@ -74,7 +69,6 @@ export async function currentPushState(): Promise<PushState> {
   return Notification.permission === "granted" ? "disabled" : "default";
 }
 
-/** Ask for permission (call from a click handler), subscribe, store for this user. */
 export async function enablePush(): Promise<PushState> {
   if (!pushSupported()) return "unsupported";
   const permission = await Notification.requestPermission();
@@ -86,7 +80,6 @@ export async function enablePush(): Promise<PushState> {
   const key = await serverKey();
   if (!key) return "not-configured";
   const existing = await reg.pushManager.getSubscription();
-  // A subscription made for another server key (e.g. after data/ was reset) can't be used.
   const sameKey =
     existing?.options.applicationServerKey &&
     sameBytes(new Uint8Array(existing.options.applicationServerKey), urlBase64ToUint8Array(key));
@@ -102,7 +95,6 @@ export async function enablePush(): Promise<PushState> {
   return "enabled";
 }
 
-/** Stop pushes to this browser (for this account). */
 export async function disablePush(): Promise<void> {
   const reg = await registration();
   const sub = await reg?.pushManager.getSubscription();
@@ -111,10 +103,6 @@ export async function disablePush(): Promise<void> {
   await sub.unsubscribe();
 }
 
-/**
- * The same browser may be shared (dad's phone, then the sister signs in):
- * make sure an existing subscription points at whoever is signed in now.
- */
 export async function claimExistingSubscription(): Promise<void> {
   if (!pushSupported() || Notification.permission !== "granted") return;
   const reg = await navigator.serviceWorker.getRegistration("/");
@@ -122,7 +110,6 @@ export async function claimExistingSubscription(): Promise<void> {
   if (sub) await save(sub).catch(() => {});
 }
 
-/** Before signing out: this device should stop getting this account's pushes. */
 export async function forgetThisDevice(): Promise<void> {
   try {
     if (!pushSupported()) return;
@@ -130,6 +117,5 @@ export async function forgetThisDevice(): Promise<void> {
     const sub = await reg?.pushManager.getSubscription();
     if (sub) await removePushSubscription(sub.endpoint);
   } catch {
-    // best effort
   }
 }

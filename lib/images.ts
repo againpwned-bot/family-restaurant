@@ -1,8 +1,3 @@
-// Browser-side photo preparation: huge phone photos are the #1 cause of lag,
-// so every dish photo is resized to <= 1600px and compressed to ~300 KB
-// (WebP where the browser can encode it, JPEG otherwise) before upload, plus a
-// tiny blurred preview used as the placeholder while the real photo loads.
-
 export const MAX_PHOTO_SIDE = 1600;
 export const TARGET_BYTES = 300 * 1024;
 const MAX_INPUT_BYTES = 40 * 1024 * 1024;
@@ -11,7 +6,6 @@ export type PreparedPhoto = {
   blob: Blob;
   width: number;
   height: number;
-  /** data: URL, ~0.5 KB */
   blur: string;
   type: "image/webp" | "image/jpeg";
 };
@@ -48,7 +42,6 @@ async function decode(file: File): Promise<ImageBitmap | HTMLImageElement> {
   try {
     return await createImageBitmap(file, { imageOrientation: "from-image" });
   } catch {
-    // Fallback for formats createImageBitmap can't take directly.
     const url = URL.createObjectURL(file);
     try {
       const img = new Image();
@@ -76,7 +69,6 @@ export async function preparePhoto(file: File): Promise<PreparedPhoto> {
   let scale = Math.min(1, MAX_PHOTO_SIDE / Math.max(srcW, srcH));
   let result: { blob: Blob; width: number; height: number } | null = null;
 
-  // Probe once whether this browser encodes WebP (Safari falls back to PNG).
   const probe = canvasFor(1, 1);
   const webp = (await toBlob(probe.canvas, "image/webp", 0.8)).type === "image/webp";
   const type = webp ? "image/webp" : "image/jpeg";
@@ -97,7 +89,6 @@ export async function preparePhoto(file: File): Promise<PreparedPhoto> {
   }
   if ("close" in source) source.close();
 
-  // 24px-wide preview, heavily compressed; next/image blurs it further.
   const bw = 24;
   const bh = Math.max(1, Math.round((bw * result!.height) / result!.width));
   const small = canvasFor(bw, bh);
@@ -107,6 +98,28 @@ export async function preparePhoto(file: File): Promise<PreparedPhoto> {
   const blur = await blobToDataUrl(await toBlob(small.canvas, type, 0.5));
 
   return { ...result!, blur, type };
+}
+
+export const AVATAR_SIDE = 256;
+
+export async function prepareAvatar(file: File): Promise<{ blob: Blob; type: PreparedPhoto["type"] }> {
+  if (!file.type.startsWith("image/") && !/\.(heic|heif|jpe?g|png|webp|avif)$/i.test(file.name)) {
+    throw new PhotoError("not an image");
+  }
+  if (file.size > MAX_INPUT_BYTES) throw new PhotoError("too large");
+  const source = await decode(file);
+  const srcW = "naturalWidth" in source ? source.naturalWidth : source.width;
+  const srcH = "naturalHeight" in source ? source.naturalHeight : source.height;
+  if (!srcW || !srcH) throw new PhotoError("empty image");
+
+  const side = Math.min(srcW, srcH);
+  const { canvas, ctx } = canvasFor(AVATAR_SIDE, AVATAR_SIDE);
+  ctx.drawImage(source, (srcW - side) / 2, (srcH - side) / 2, side, side, 0, 0, AVATAR_SIDE, AVATAR_SIDE);
+  if ("close" in source) source.close();
+
+  const probe = await toBlob(canvas, "image/webp", 0.8);
+  if (probe.type === "image/webp") return { blob: probe, type: "image/webp" };
+  return { blob: await toBlob(canvas, "image/jpeg", 0.82), type: "image/jpeg" };
 }
 
 export function photoExtension(type: PreparedPhoto["type"]) {

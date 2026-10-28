@@ -39,6 +39,8 @@ export default async function EditDishPage({ params }: PageProps<"/admin/dishes/
           photo_height: dish.photo_height,
           photo_blur: dish.photo_blur,
           ingredients: dish.dish_ingredients.map((i) => ({ name: i.name, quantity: i.quantity, unit: i.unit })),
+          tags: dish.tags,
+          meal: dish.meal,
         }}
       />
     </>

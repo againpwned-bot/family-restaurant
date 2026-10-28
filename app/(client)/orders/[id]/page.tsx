@@ -20,7 +20,6 @@ export default async function OrderPage({ params }: PageProps<"/orders/[id]">) {
   const profile = await requireProfile({ roles: ["owner", "client"] });
   const { id } = await params;
   if (!UUID.test(id)) notFound();
-  // RLS lets clients read only their own orders (the owner can read all; keep it to their own here).
   const data = await asUser(profile.id, async (tx) => {
     const order = await ownOrder(tx, profile.id, id);
     if (!order) return null;

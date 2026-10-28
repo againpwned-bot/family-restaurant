@@ -15,7 +15,6 @@ import { clientIp, isHttps, userAgent } from "@/lib/server/request";
 import { SESSION_COOKIE, encodeSession, sessionCookieOptions } from "@/lib/server/session-cookie";
 import type { AppRole, Locale } from "@/lib/types";
 
-/** Wrong passwords for one username from any address, per 10 minutes. */
 const ACCOUNT_MAX_FAILURES = 30;
 
 export type LoginError = "required" | "invalid" | "rate_limited" | "no_access" | "unknown";
@@ -26,7 +25,6 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
   const password = String(formData.get("password") ?? "");
 
   if (!username || !password) return { error: "required", username };
-  // Same answer as a wrong password: don't reveal which usernames exist.
   if (!isValidUsername(username) || new TextEncoder().encode(password).length > PASSWORD_MAX_LENGTH) {
     return { error: "invalid", username };
   }
@@ -37,13 +35,13 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     return { error: "rate_limited", username };
   }
 
-  let user: { id: string; role: AppRole; locale: Locale; password_hash: string } | null;
+  let user: { id: string; role: AppRole; locale: Locale; password_hash: string; disabled_at: string | null } | null;
   let sessionId: string;
   try {
     const db = await getDb();
     user = await row(
       db,
-      `select p.id, p.role, p.locale, u.password_hash
+      `select p.id, p.role, p.locale, p.disabled_at, u.password_hash
          from public.profiles p join auth.users u on u.id = p.id
         where lower(p.username) = lower($1)`,
       [username],
@@ -56,6 +54,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     }
     clearFailures(limitKey);
     clearFailures(accountKey);
+    if (user.disabled_at) return { error: "no_access", username };
     const session = await row<{ id: string }>(
       db,
       "insert into auth.sessions (user_id, user_agent) values ($1, $2) returning id",

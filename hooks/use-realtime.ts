@@ -8,8 +8,6 @@ type Table = RealtimeTable;
 export type RealtimeStatus = "connecting" | "live" | "offline";
 export type RealtimePayload = Omit<RealtimeEvent, "table">;
 
-// One EventSource per tab, shared by every component that listens (browsers
-// allow only a few open connections per site over plain http).
 type Listener = {
   onEvent: (event: RealtimeEvent) => void;
   onReconnect: () => void;
@@ -56,8 +54,6 @@ function connect() {
     for (const l of listeners) l.onEvent(event);
   };
   es.onerror = () => {
-    // CONNECTING = the browser retries by itself; CLOSED (e.g. 401 after
-    // signing out elsewhere, or the server restarted) = retry with backoff.
     setStatus(es.readyState === EventSource.CONNECTING ? "connecting" : "offline");
     if (es.readyState !== EventSource.CLOSED) return;
     es.close();
@@ -72,7 +68,6 @@ function connect() {
 }
 
 function disconnectSoon() {
-  // Keep the connection across a page change (one component unmounts, the next mounts).
   setTimeout(() => {
     if (listeners.size) return;
     source?.close();
@@ -83,17 +78,11 @@ function disconnectSoon() {
   }, 2000);
 }
 
-/** "client_id=eq.<id>": the only filter form the app uses. */
 function parseFilter(filter: string | undefined) {
   const match = filter?.match(/^(\w+)=eq\.(.+)$/);
   return match ? { column: match[1], value: match[2] } : null;
 }
 
-/**
- * Listens to row changes on the given tables (row level security decides
- * which rows arrive). `onResync` runs after every reconnection and when the
- * tab becomes visible again, so anything missed meanwhile is fetched again.
- */
 export function useRealtime(
   channelName: string,
   tables: { table: Table; filter?: string }[],
@@ -122,7 +111,6 @@ export function useRealtime(
           if (table !== event.table) continue;
           if (filter) {
             const row = event.eventType === "DELETE" ? event.old : event.new;
-            // Deletes only carry the primary key; let them through when the column isn't there.
             if (filter.column in row && String(row[filter.column]) !== filter.value) continue;
           }
           handlers.current.onChange(table, { eventType: event.eventType, new: event.new, old: event.old });
@@ -134,7 +122,6 @@ export function useRealtime(
     listeners.add(listener);
     connect();
 
-    // Coming back to the tab: the connection may have been throttled; refresh data.
     const onVisible = () => {
       if (document.visibilityState === "visible") handlers.current.onResync?.();
     };

@@ -1,11 +1,5 @@
 "use client";
 
-// Shared <Canvas> setup for the desktop-full tier. Budget (RTX 3050 class):
-// one canvas per page, dpr max 1.5, no antialias (dpr does the smoothing), no
-// post-processing, a handful of draw calls. Rendering stops while the tab is
-// hidden or the canvas is scrolled out of view, and a sustained frame-rate drop
-// or a lost WebGL context quietly falls back to the lite tier.
-
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Component, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 
@@ -25,9 +19,6 @@ class WebglBoundary extends Component<{ onError: () => void; children: ReactNode
   }
 }
 
-// "One canvas per page": when a second canvas appears (e.g. the dish overlay's
-// 3D plate over the home page's background), the older ones stop rendering
-// until it goes away.
 let nextId = 0;
 const stack: number[] = [];
 const listeners = new Set<() => void>();
@@ -48,7 +39,6 @@ function useIsTopCanvas() {
   return top;
 }
 
-/** Measures the canvas' own frame rate; below 45 fps for two 3 s windows in a row -> give up WebGL. */
 function FpsGuard({ onSlow }: { onSlow: () => void }) {
   const acc = useRef({ time: 0, frames: 0, warmup: 1.5, reported: false, slow: 0 });
   useFrame((_, delta) => {
@@ -61,7 +51,6 @@ function FpsGuard({ onSlow }: { onSlow: () => void }) {
     a.time += delta;
     a.frames++;
     if (a.time >= 3) {
-      // One-off hitches (navigation, texture upload) don't count: it must stay slow.
       a.slow = a.frames / a.time < 45 ? a.slow + 1 : 0;
       if (a.slow >= 2) {
         a.reported = true;
@@ -92,8 +81,6 @@ export function CanvasShell({
   const [onScreen, setOnScreen] = useState(true);
   const [tabVisible, setTabVisible] = useState(true);
   const [ready, setReady] = useState(false);
-  // react-three-fiber releases the context itself on unmount (webglcontextlost
-  // fires then too): only a loss while still mounted is a real GPU problem.
   const mounted = useRef(true);
   useLayoutEffect(() => {
     mounted.current = true;

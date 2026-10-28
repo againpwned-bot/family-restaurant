@@ -17,12 +17,10 @@ export async function sendTestNotification() {
   });
 }
 
-/** The public half of this server's VAPID key pair (generated on first start). */
 export async function pushPublicKey() {
   return act(null, async () => vapidPublicKey());
 }
 
-/** This browser's push subscription now belongs to the signed-in user. */
 export async function registerPushSubscription(input: {
   endpoint: string;
   p256dh: string;

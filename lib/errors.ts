@@ -1,6 +1,3 @@
-// Database functions raise exceptions whose message is a stable key
-// ("dish_unavailable"); this maps them to translation keys under errors.db.
-
 export const DB_ERROR_KEYS = [
   "forbidden",
   "dish_not_found",
@@ -18,6 +15,14 @@ export const DB_ERROR_KEYS = [
   "too_many_ingredients",
   "invalid_item",
   "invalid_photo",
+  "ordering_closed",
+  "invalid_day",
+  "menu_empty",
+  "template_not_found",
+  "invalid_broadcast",
+  "no_recipients",
+  "invalid_message",
+  "user_not_found",
   "network",
   "unknown",
 ] as const;

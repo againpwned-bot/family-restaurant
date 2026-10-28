@@ -3,9 +3,11 @@
 import { ChevronRight, CircleCheck, LoaderCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 import { useFormatter, useTranslations } from "next-intl";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { Confetti } from "@/components/decor/confetti";
+import { CookingPot } from "@/components/decor/cooking-pot";
 import { DishPhoto } from "@/components/dish/dish-photo";
 import { timerState } from "@/components/orders/order-timer";
 import { StatusFlip } from "@/components/motion/status-flip";
@@ -34,16 +36,25 @@ import type { Order, OrderStatus } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
 export const STATUS_TONE: Record<OrderStatus, string> = {
-  received: "bg-gold-soft text-gold-ink",
-  accepted: "bg-secondary text-secondary-foreground",
-  cooking: "bg-[#ffedd5] text-[#9a3412] dark:bg-[#431407] dark:text-[#fdba74]",
-  ready: "bg-success text-success-foreground",
-  handed_over: "bg-muted text-muted-foreground",
-  rejected: "bg-destructive/10 text-destructive",
-  cancelled: "bg-muted text-muted-foreground",
+  received: "border-line bg-gold text-gold-foreground",
+  accepted: "border-line bg-card text-foreground",
+  cooking: "border-line bg-primary text-primary-foreground",
+  ready: "border-line bg-success text-success-foreground",
+  handed_over: "border-border bg-muted text-muted-foreground",
+  rejected: "border-destructive/40 bg-destructive/10 text-destructive",
+  cancelled: "border-border bg-muted text-muted-foreground",
 };
 
-/** Live countdown ring; null when the order has no running timer. */
+export function useReadyShot(status: OrderStatus): number | null {
+  const previous = useRef<OrderStatus | null>(null);
+  const [shot, setShot] = useState<number | null>(null);
+  useEffect(() => {
+    if (status === "ready" && previous.current !== "ready") setShot(Date.now());
+    previous.current = status;
+  }, [status]);
+  return shot;
+}
+
 export function OrderCountdown({ order, size = 64, large = false }: { order: Order; size?: number; large?: boolean }) {
   const t = useTranslations("orders");
   const now = useNow();
@@ -129,21 +140,24 @@ export function ClientOrderCard({ order, onChange }: { order: Order; onChange: (
   const t = useTranslations();
   const { time, day } = useOrderTimes();
   const open = ["received", "accepted", "cooking", "ready"].includes(order.status);
+  const shot = useReadyShot(order.status);
 
   return (
     <article
       aria-labelledby={`o-${order.id}`}
       className={cn(
-        "grid gap-4 rounded-3xl border bg-card p-4 shadow-sm sm:p-5",
-        order.status === "ready" ? "border-success ring-3 ring-success/25" : "border-border",
+        "relative grid gap-4 rounded-[1.75rem] bg-card p-4 sticker sm:p-5",
+        order.status === "ready" && "bg-success-soft",
+        !open && "opacity-85",
       )}
     >
+      <Confetti shot={shot} />
       <div className="flex items-start gap-3">
-        <div className="relative size-16 shrink-0 overflow-hidden rounded-2xl bg-muted">
+        <div className="relative size-16 shrink-0 overflow-hidden rounded-2xl border-2 border-line bg-muted">
           <DishPhoto dish={{ name: order.dish_name, photo_path: order.dish_photo_path }} sizes="64px" quality={60} />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 id={`o-${order.id}`} className="font-heading text-lg leading-tight font-bold">
+          <h3 id={`o-${order.id}`} className="font-heading text-xl leading-tight font-black">
             {order.dish_name}{" "}
             <span className="font-sans text-base whitespace-nowrap text-brand-ink">× {order.quantity}</span>
           </h3>
@@ -155,12 +169,15 @@ export function ClientOrderCard({ order, onChange }: { order: Order; onChange: (
             {order.requested_for ? t("orders.requestedFor", { time: time(order.requested_for) }) : t("orders.asap")}
           </p>
         </div>
-        <Badge className={cn("shrink-0", STATUS_TONE[order.status])}>{t(`orderStatus.${order.status}`)}</Badge>
+        <Badge className={cn("h-6 shrink-0 border-2 px-2.5 font-bold", STATUS_TONE[order.status])}>
+          {t(`orderStatus.${order.status}`)}
+        </Badge>
       </div>
 
       {open ? <StatusSteps status={order.status} /> : null}
 
       <div className="flex items-center gap-4">
+        {order.status === "cooking" ? <CookingPot className="size-14 shrink-0 text-foreground" /> : null}
         <OrderCountdown order={order} />
         <StatusFlip statusKey={order.status} className="min-w-0 flex-1">
           <p className={cn("font-semibold", order.status === "ready" && "text-lg text-success")}>

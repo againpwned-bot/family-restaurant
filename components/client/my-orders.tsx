@@ -65,11 +65,11 @@ export function MyOrders({
 
   if (!all.length) {
     return (
-      <div className="grid place-items-center gap-3 rounded-3xl border border-dashed border-border bg-card px-6 py-16 text-center">
-        <span className="grid size-16 place-items-center rounded-full bg-secondary text-secondary-foreground">
-          <Receipt className="size-8" aria-hidden="true" />
+      <div className="grid place-items-center gap-3 rounded-[2rem] bg-card px-6 py-16 text-center sticker">
+        <span className="grid size-20 -rotate-6 place-items-center rounded-full border-2 border-line bg-gold text-gold-foreground shadow-[3px_3px_0_var(--shadow-hard)]">
+          <Receipt className="size-9 animate-wiggle" aria-hidden="true" />
         </span>
-        <h2 className="font-heading text-2xl font-bold">{t("orders.empty")}</h2>
+        <h2 className="font-heading text-3xl font-black">{t("orders.empty")}</h2>
         <p className="text-muted-foreground">{t("orders.emptyText")}</p>
         <Button asChild size="lg" className="mt-2">
           <Link href="/">{t("orders.goToMenu")}</Link>
@@ -81,23 +81,23 @@ export function MyOrders({
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)] lg:items-start">
       <section aria-labelledby="active-title" className="grid grid-cols-1 gap-3">
-        <h2 id="active-title" className="font-sans text-sm font-bold tracking-wide uppercase">
+        <h2 id="active-title" className="font-heading text-2xl font-black">
           {t("orders.active")} · {active.length}
         </h2>
         {active.length ? (
           active.map((o) => <ClientOrderCard key={o.id} order={o} onChange={apply} />)
         ) : (
-          <p className="rounded-3xl border border-dashed border-border bg-card px-4 py-8 text-center text-muted-foreground">
+          <p className="rounded-[1.75rem] border-2 border-dashed border-line/50 bg-card px-4 py-8 text-center font-hand text-2xl font-bold text-muted-foreground">
             {t("orders.noActive")}
           </p>
         )}
       </section>
 
       <section aria-labelledby="history-title" className="grid grid-cols-1 gap-3">
-        <h2 id="history-title" className="font-sans text-sm font-bold tracking-wide text-muted-foreground uppercase">
+        <h2 id="history-title" className="font-heading text-2xl font-black">
           {t("orders.history")}
         </h2>
-        <ul className="grid grid-cols-1 divide-y divide-border overflow-hidden rounded-3xl border border-border bg-card">
+        <ul className="grid grid-cols-1 divide-y-2 divide-dashed divide-border overflow-hidden rounded-[1.75rem] bg-card sticker">
           {history.map((o) => (
             <li key={o.id}>
               <Link
@@ -112,7 +112,9 @@ export function MyOrders({
                     #{o.number} · {day(o.created_at)} · {time(o.created_at)}
                   </p>
                 </div>
-                <Badge className={cn("shrink-0", STATUS_TONE[o.status])}>{t(`orderStatus.${o.status}`)}</Badge>
+                <Badge className={cn("shrink-0 border-2 font-bold", STATUS_TONE[o.status])}>
+                  {t(`orderStatus.${o.status}`)}
+                </Badge>
               </Link>
             </li>
           ))}
